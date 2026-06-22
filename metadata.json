@@ -1,0 +1,6 @@
+{
+  "name": "LeadMine AI",
+  "description": "A modern SaaS application for discovering local business leads needing web, marketing, and SEO services.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

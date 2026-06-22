@@ -1,0 +1,294 @@
+import React, { useState } from 'react';
+import { 
+  X, 
+  MapPin, 
+  Phone, 
+  Globe, 
+  Star, 
+  Sparkles, 
+  CornerDownRight, 
+  Copy, 
+  Check, 
+  Mail, 
+  AlertTriangle,
+  Lightbulb,
+  Building,
+  Target
+} from 'lucide-react';
+import { Business } from '../types';
+
+interface BusinessModalProps {
+  lead: Business | null;
+  onClose: () => void;
+  onSave: (lead: Business) => void;
+  isSaved: boolean;
+}
+
+export default function BusinessModal({
+  lead,
+  onClose,
+  onSave,
+  isSaved
+}: BusinessModalProps) {
+  const [copied, setCopied] = useState(false);
+  
+  if (!lead) return null;
+
+  // Audit calculations
+  const rating = lead.rating || 0;
+  const reviewCount = lead.reviewCount || 0;
+  const hasWebsite = !!lead.website;
+
+  const isLowReviews = reviewCount < 30;
+  const isPoorRating = rating < 4.2;
+
+  // Generate customized marketing audit
+  const deficits: string[] = [];
+  if (!hasWebsite) deficits.push('Web Presence Deficit (No official website found)');
+  if (isLowReviews) deficits.push(`Low Social Proof (${reviewCount} GMB reviews - Gaps in review funnel)`);
+  if (isPoorRating) deficits.push(`Reputation Deficit (${rating} ★ - Falling below GMB local 3-pack standards)`);
+
+  // Pitch template generator based on deficits
+  const generatePitchText = () => {
+    let msg = `Hi there,\n\n`;
+    msg += `I was looking at local ${lead.category.toLowerCase()} businesses in ${lead.city} and came across ${lead.name}.\n\n`;
+    
+    if (!hasWebsite) {
+      msg += `I noticed you don't have a modern website listed online. In today's digital climate, over 74% of clients research online before visiting. My team builds conversion-focused websites specifically for ${lead.category.toLowerCase()} agencies that help secure customers directly from Google.\n\n`;
+    } else if (isPoorRating) {
+      msg += `I noticed that while you have a web presence, your Google ranking is sitting around ${rating} Stars. Since most prospects skip any place below 4.3 stars, you're likely losing high-intent customers to competing ${lead.category.toLowerCase()} offices in the neighborhood. We design customized reputational pipelines to help clients capture authentic positive reviews.\n\n`;
+    } else if (isLowReviews) {
+      msg += `I noticed you have a premium service but only have ${reviewCount} reviews on Google. Competitors with more reviews are likely drawing customers away because they look more established. We specialize in automated local review pipelines to boost GMB search placement safely and rapidly.\n\n`;
+    } else {
+      msg += `I noticed ${lead.name} has great ratings! We help local ${lead.category.toLowerCase()} operations run targeted geo-ads to double their client bookings using their excellent reviews.\n\n`;
+    }
+    
+    msg += `Could we hop on a quick 5-minute call this Thursday to discuss how we can turn this into a growth channel for ${lead.name}?\n\n`;
+    msg += `Best regards,\n[Your Name] - Local Lead Consultant`;
+    return msg;
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatePitchText());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/55 backdrop-blur-xs font-sans">
+      {/* Modal Card */}
+      <div className="relative w-full max-w-2xl bg-white border border-slate-200 dark:border-slate-800 rounded-2xl dark:bg-slate-950 text-slate-850 dark:text-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+        
+        {/* Header decoration */}
+        <div className="h-2 bg-indigo-600 w-full" />
+
+        {/* Top/Title */}
+        <div className="flex items-center justify-between p-6 pb-2 border-b border-slate-100 dark:border-slate-850">
+          <div className="flex items-start space-x-3.5">
+            <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-xl text-indigo-600 dark:text-indigo-400 border border-indigo-100/30">
+              <Building className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold font-sans tracking-tight leading-7 md:text-2xl">
+                {lead.name}
+              </h3>
+              <div className="flex flex-wrap gap-2 mt-1.5 items-center">
+                <span className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-900 border dark:border-slate-800 px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+                  {lead.category}
+                </span>
+                <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                  Located in: {lead.city}
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 px-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-800 cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Metadata info cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {/* Rating */}
+            <div className="p-4 rounded-xl border border-slate-150 bg-slate-55/40 dark:border-slate-850 dark:bg-slate-900/40">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 block uppercase tracking-wide">
+                GMB Rating
+              </span>
+              <div className="flex items-baseline space-x-1.5 mt-2">
+                <span className="text-2xl font-black text-slate-900 dark:text-slate-50">
+                  {rating ? rating.toFixed(1) : 'N/A'}
+                </span>
+                <div className="flex items-center text-amber-400">
+                  <Star className="w-4 h-4 fill-amber-400" />
+                </div>
+              </div>
+              <span className={`text-[11px] font-semibold block mt-1 ${isPoorRating ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                {isPoorRating ? '● Poor Rating' : '✓ Rating Stable'}
+              </span>
+            </div>
+
+            {/* Review count */}
+            <div className="p-4 rounded-xl border border-slate-150 bg-slate-55/40 dark:border-slate-850 dark:bg-slate-900/40">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 block uppercase tracking-wide">
+                Total Reviews
+              </span>
+              <div className="flex items-baseline space-x-1.5 mt-2">
+                <span className="text-2xl font-black text-slate-900 dark:text-slate-50">
+                  {reviewCount}
+                </span>
+                <span className="text-xs text-slate-400 font-medium">listings</span>
+              </div>
+              <span className={`text-[11px] font-semibold block mt-1 ${isLowReviews ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                {isLowReviews ? '● Needs social proof' : '✓ Standard Social proof'}
+              </span>
+            </div>
+
+            {/* Website existence */}
+            <div className="p-4 rounded-xl border border-slate-150 bg-slate-55/40 dark:border-slate-850 dark:bg-slate-900/40">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 block uppercase tracking-wide">
+                Web Presence
+              </span>
+              <div className="flex items-center space-x-2 mt-2 h-8">
+                {hasWebsite ? (
+                  <a
+                    href={lead.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-600 hover:underline dark:text-emerald-400 text-sm font-bold flex items-center gap-1 leading-none"
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span>Active Website</span>
+                  </a>
+                ) : (
+                  <span className="text-rose-600 dark:text-rose-400 text-sm font-black uppercase flex items-center gap-1 leading-none">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>No Web Presence</span>
+                  </span>
+                )}
+              </div>
+              <span className={`text-[11px] font-semibold block mt-1 ${hasWebsite ? 'text-slate-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {hasWebsite ? 'Low barrier to entrance' : '● High Conversion Value'}
+              </span>
+            </div>
+          </div>
+
+          {/* Core audited deficits list */}
+          <div className="p-5 border border-amber-200 bg-amber-50/20 rounded-xl dark:border-amber-900/40 dark:bg-amber-950/10">
+            <div className="flex items-center space-x-2 text-amber-800 dark:text-amber-300">
+              <Target className="w-4.5 h-4.5 animate-pulse" />
+              <h4 className="text-sm font-bold uppercase tracking-wider">Identified Agency Target Deficits</h4>
+            </div>
+            {deficits.length > 0 ? (
+              <ul className="mt-2.5 space-y-1 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                {deficits.map((deficit, index) => (
+                  <li key={index} className="flex items-center space-x-2">
+                    <CornerDownRight className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span>{deficit}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2.5 text-xs text-slate-500">
+                Excellent natural stats. High GMB presence. Best outreach strategy is running geo-focused optimization campaigns rather than core rebuild audits.
+              </p>
+            )}
+          </div>
+
+          {/* Contact Directory Details */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Contact & Address Directory</h4>
+            <div className="grid grid-cols-1 gap-3 text-xs font-medium bg-slate-50 p-4.5 rounded-xl border border-slate-150 dark:bg-slate-900/40 dark:border-slate-850">
+              <div className="flex items-start space-x-2.5">
+                <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                <span className="text-slate-700 dark:text-slate-350">{lead.address || 'No Address Listed'}</span>
+              </div>
+              <div className="flex items-center space-x-2.5">
+                <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="font-mono text-slate-700 dark:text-slate-350">{lead.phone || 'No Phone Number Listed'}</span>
+              </div>
+              {hasWebsite && (
+                <div className="flex items-center space-x-2.5">
+                  <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+                  <a 
+                    href={lead.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-indigo-600 dark:text-indigo-400 hover:underline truncate"
+                  >
+                    {lead.website}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Cold Pitch Generator Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Mail className="w-4.5 h-4.5 text-indigo-500" />
+                <span>Cold Outreach Sales Pitch (Ready to Send)</span>
+              </h4>
+              <button
+                onClick={copyToClipboard}
+                className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300 rounded-md cursor-pointer transition-colors"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-emerald-500">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Template</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="p-4.5 rounded-xl border border-slate-150 bg-slate-950 font-mono text-xs text-slate-300 leading-relaxed overflow-x-auto whitespace-pre-wrap select-all max-h-[180px] border-slate-200 dark:border-slate-850">
+              {generatePitchText()}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Footer controls: Save / Dismiss */}
+        <div className="flex items-center justify-between p-6 border-t border-slate-100 bg-slate-50 dark:border-slate-850 dark:bg-slate-950/30 gap-3">
+          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider hidden sm:block">
+            LEADMINE CRM PLANNERS
+          </p>
+          <div className="flex items-center space-x-2.5 w-full sm:w-auto">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 hover:bg-slate-100 border text-slate-700 dark:hover:bg-slate-900 dark:text-slate-300 text-sm font-semibold rounded-lg w-full sm:w-auto cursor-pointer transition-colors border-slate-200 dark:border-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                onSave(lead);
+                onClose();
+              }}
+              disabled={isSaved}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold text-white w-full sm:w-auto flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${
+                isSaved 
+                  ? 'bg-emerald-500 cursor-not-allowed hover:bg-emerald-500 opacity-80' 
+                  : 'bg-indigo-600 hover:bg-indigo-700'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>{isSaved ? 'Lead Saved in CRM' : 'Save Business Lead'}</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}

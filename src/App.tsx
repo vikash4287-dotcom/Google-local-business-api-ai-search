@@ -1,0 +1,667 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Search, 
+  MapPin, 
+  Star, 
+  BookmarkCheck, 
+  Sparkles, 
+  History, 
+  SlidersHorizontal,
+  ChevronRight,
+  Database,
+  Trash2,
+  TrendingDown,
+  Building2,
+  AlertCircle
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Business, SavedBusiness, SearchHistory, ActiveUser } from './types';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import ResultsTable from './components/ResultsTable';
+import BusinessModal from './components/BusinessModal';
+import ConnectionsPanel from './components/ConnectionsPanel';
+import { generateMockLeads } from './services/leadsMock';
+import { databaseService } from './services/db';
+
+export default function App() {
+  // Theme state (SaaS default is high-contrast light, with full dark mode support)
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    const saved = localStorage.getItem('leadmine_ai_theme');
+    return saved === 'dark';
+  });
+
+  // Navigation state
+  const [activeTab, setActiveTab] = useState<'search' | 'saved' | 'connections'>('search');
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Core CRM data structures states
+  const [user, setUser] = useState<ActiveUser>({ id: '', email: 'vikash4287@gmail.com', createdAt: '' });
+  const [savedLeads, setSavedLeads] = useState<SavedBusiness[]>([]);
+  const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
+  
+  // Active search query parameters
+  const [city, setCity] = useState('Seattle');
+  const [category, setCategory] = useState('Restaurants');
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
+  // Filter values
+  const [minRating, setMinRating] = useState<number>(1.0);
+  const [maxRating, setMaxRating] = useState<number>(5.0);
+  const [minReviews, setMinReviews] = useState<number>(0);
+  const [maxReviews, setMaxReviews] = useState<number>(10000);
+  const [hasWebsite, setHasWebsite] = useState<'any' | 'yes' | 'no'>('any');
+
+  // Search execution states
+  const [leads, setLeads] = useState<Business[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastCitySearched, setLastCitySearched] = useState('Seattle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // UI inspection items
+  const [selectedLead, setSelectedLead] = useState<Business | null>(null);
+
+  // Configuration indicators
+  const MAPS_KEY = process.env.GOOGLE_MAPS_PLATFORM_KEY || '';
+  const googleMapsConfigured = Boolean(MAPS_KEY && MAPS_KEY !== 'YOUR_GOOGLE_MAPS_KEY' && MAPS_KEY !== 'MY_GOOGLE_MAPS_PLATFORM_KEY');
+  const supabaseStatus = databaseService.getSupabaseStatus();
+
+  // Categories list
+  const CATEGORIES = [
+    'Restaurants', 'Dentists', 'Salons', 'Gyms', 'Hotels', 
+    'Real Estate Agencies', 'Car Dealers', 'Cafes', 'Doctors', 
+    'Interior Designers', 'Make up Artists', 'Car wash', 'Car Garage', 'Pest Control'
+  ];
+
+  // Load initial systemic state (Async safe Gp)
+  useEffect(() => {
+    let active = true;
+    async function loadData() {
+      const activeUser = await databaseService.getCurrentUser();
+      const saved = await databaseService.getSavedBusinesses();
+      const history = await databaseService.getSearchHistory();
+      
+      if (active) {
+        setUser(activeUser);
+        setSavedLeads(saved);
+        setSearchHistory(history);
+      }
+    }
+    loadData();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Theme effect hook
+  useEffect(() => {
+    localStorage.setItem('leadmine_ai_theme', isDark ? 'dark' : 'light');
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  // Initial Seed Search to fill page on load
+  useEffect(() => {
+    handleSearch(true);
+  }, []);
+
+  // Execution Search Logic
+  const handleSearch = async (isInitialSeed = false) => {
+    if (!city.trim()) return;
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    const activeFilters = {
+      minRating: Number(minRating),
+      maxRating: Number(maxRating),
+      minReviews: Number(minReviews),
+      maxReviews: Number(maxReviews),
+      hasWebsite
+    };
+
+    try {
+      // Dynamic script loader for Google Maps Places API if configured
+      if (googleMapsConfigured && (window as any).google?.maps?.places) {
+        // Direct Query through active Places Library
+        const tempDiv = document.createElement('div');
+        const service = new (window as any).google.maps.places.PlacesService(tempDiv);
+        
+        service.textSearch({
+          query: `${category} in ${city.trim()}`
+        }, async (results: any[], status: any) => {
+          if (status === 'OK' && results) {
+            const mappedLeads: Business[] = results.map((place: any, index: number) => {
+              // Convert Google model matching schema (CF4 Schema safe check)
+              const hasWeb = place.website || (place.photos && place.photos.length > 2);
+              return {
+                id: place.place_id || `gplace_${index}_${Date.now()}`,
+                name: place.name,
+                address: place.formatted_address || place.vicinity,
+                phone: place.formatted_phone_number || undefined,
+                website: place.website || undefined,
+                rating: place.rating || undefined,
+                reviewCount: place.user_ratings_total || 0,
+                category,
+                city: city.trim()
+              };
+            });
+
+            // Filter mapping results
+            const filtered = mappedLeads.filter(lead => {
+              const matchesRating = (lead.rating || 0) >= activeFilters.minRating && (lead.rating || 0) <= activeFilters.maxRating;
+              const matchesReviews = (lead.reviewCount || 0) >= activeFilters.minReviews && (lead.reviewCount || 0) <= activeFilters.maxReviews;
+              let matchesWeb = true;
+              if (activeFilters.hasWebsite === 'yes') matchesWeb = !!lead.website;
+              if (activeFilters.hasWebsite === 'no') matchesWeb = !lead.website;
+              return matchesRating && matchesReviews && matchesWeb;
+            });
+
+            setLeads(filtered);
+            setLastCitySearched(city.trim());
+            setIsLoading(false);
+
+            if (!isInitialSeed) {
+              const hEntry = await databaseService.addSearchHistory({
+                city: city.trim(),
+                category,
+                resultsCount: filtered.length,
+                filters: activeFilters
+              });
+              setSearchHistory(prev => [hEntry, ...prev]);
+            }
+          } else {
+            throw new Error(`Google Places query failed with status: ${status}`);
+          }
+        });
+      } else {
+        // Run with LeadMine Smart Generator simulator
+        // Simulates realistic delays
+        await new Promise(resolve => setTimeout(resolve, 800));
+        const mockResults = generateMockLeads(city.trim(), category, activeFilters);
+        setLeads(mockResults);
+        setLastCitySearched(city.trim());
+        setIsLoading(false);
+
+        if (!isInitialSeed) {
+          const hEntry = await databaseService.addSearchHistory({
+            city: city.trim(),
+            category,
+            resultsCount: mockResults.length,
+            filters: activeFilters
+          });
+          setSearchHistory(prev => [hEntry, ...prev]);
+        }
+      }
+    } catch (err: any) {
+      console.error('Unified lead discovery error:', err);
+      // Fallback cleanly
+      const mockResults = generateMockLeads(city.trim(), category, activeFilters);
+      setLeads(mockResults);
+      setLastCitySearched(city.trim());
+      setIsLoading(false);
+      setErrorMessage(err.message || 'Connecting to Google Places API failed, loaded LeadMine local simulator results instead.');
+    }
+  };
+
+  // Saved Leads operations
+  const handleSaveLead = async (business: Business) => {
+    try {
+      const savedItem = await databaseService.saveBusiness(business);
+      setSavedLeads(prev => [savedItem, ...prev]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemoveLead = async (id: string) => {
+    try {
+      await databaseService.removeSavedBusiness(id);
+      setSavedLeads(prev => prev.filter(item => item.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (confirm('Clear all local search history?')) {
+      await databaseService.clearSearchHistory();
+      setSearchHistory([]);
+    }
+  };
+
+  const applyHistoryItem = (item: SearchHistory) => {
+    setCity(item.city);
+    setCategory(item.category);
+    if (item.filters) {
+      setMinRating(item.filters.minRating || 1.0);
+      setMaxRating(item.filters.maxRating || 5.0);
+      setMinReviews(item.filters.minReviews || 0);
+      setMaxReviews(item.filters.maxReviews || 10000);
+      setHasWebsite(item.filters.hasWebsite || 'any');
+    }
+    setActiveTab('search');
+    // Trigger action next frame
+    setTimeout(() => {
+      handleSearch();
+    }, 50);
+  };
+
+  // Saved leads helper maps for check verification toggles
+  const savedLeadsNameCityMap = useMemo(() => {
+    const set = new Set<string>();
+    savedLeads.forEach(item => {
+      set.add(`${item.name.toLowerCase()}_${item.city.toLowerCase()}`);
+    });
+    return set;
+  }, [savedLeads]);
+
+  return (
+    <div className="flex min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+      {/* Sidebar Navigation */}
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        savedCount={savedLeads.length}
+        mobileOpen={mobileOpen}
+        setMobileOpen={setMobileOpen}
+        supabaseConfigured={supabaseStatus.isConnected}
+      />
+
+      {/* Main Core Frame */}
+      <div className="flex flex-col flex-1 min-w-0">
+        <Header 
+          user={user}
+          isDark={isDark}
+          setIsDark={setIsDark}
+          supabaseConfigured={supabaseStatus.isConnected}
+          googleMapsConfigured={googleMapsConfigured}
+          setMobileOpen={setMobileOpen}
+          onOpenConnections={() => setActiveTab('connections')}
+        />
+
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {activeTab === 'search' && (
+              <motion.div
+                key="search-tab"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                {/* Hero block */}
+                <div className="space-y-1.5 py-2">
+                  <h1 className="text-2xl font-black font-sans md:text-3.5xl tracking-tight text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                    <span>Find Businesses Losing Customers Online</span>
+                    <Sparkles className="w-5.5 h-5.5 text-indigo-500 animate-pulse hidden sm:inline-block" />
+                  </h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                    Discover local businesses with poor online presence, outdated metrics, or zero website and turn them into high-paying web and marketing clients.
+                  </p>
+                </div>
+
+                {errorMessage && (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-700 dark:text-amber-400 text-xs font-semibold flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {/* Filters/Search Hub card */}
+                <div className="p-6 bg-white border border-slate-200 rounded-2xl dark:border-slate-850 dark:bg-slate-950/70 shadow-xs space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+                    {/* City input */}
+                    <div className="space-y-1.5 md:col-span-5">
+                      <label className="text-xs font-bold text-slate-450 uppercase tracking-widest block">City or Town</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+                        <input
+                          type="text"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          placeholder="e.g. Seattle, Denver, Chicago..."
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-55/65 hover:bg-slate-55 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-sm font-semibold transition-all focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category Selector */}
+                    <div className="space-y-1.5 md:col-span-4">
+                      <label className="text-xs font-bold text-slate-455 uppercase tracking-widest block">Business Category</label>
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-55/65 hover:bg-slate-55 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-sm font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
+                      >
+                        {CATEGORIES.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Filter Toggle & Search button combo */}
+                    <div className="flex items-end space-x-2.5 md:col-span-3">
+                      <button
+                        onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                        className={`p-2.5 border rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                          isFiltersOpen 
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950 dark:border-indigo-900 dark:text-indigo-400' 
+                            : 'border-slate-250 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900'
+                        }`}
+                        title="Advanced filters"
+                      >
+                        <SlidersHorizontal className="w-5 h-5" />
+                      </button>
+
+                      <button
+                        onClick={() => handleSearch(false)}
+                        className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md shadow-indigo-600/10"
+                      >
+                        <Search className="w-4.5 h-4.5" />
+                        <span>Discover Leads</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Filters panel */}
+                  {isFiltersOpen && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden border-t border-slate-100 dark:border-slate-850 pt-4"
+                    >
+                      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 text-xs font-semibold">
+                        {/* Min Rating */}
+                        <div className="space-y-1.5">
+                          <label className="text-slate-400 uppercase tracking-widest block">Min Rating (Stars)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            step="0.1"
+                            value={minRating}
+                            onChange={(e) => setMinRating(Number(e.target.value))}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-900 dark:border-slate-850 dark:text-slate-100 outline-hidden"
+                          />
+                        </div>
+
+                        {/* Max Rating */}
+                        <div className="space-y-1.5">
+                          <label className="text-slate-400 uppercase tracking-widest block">Max Rating (Stars)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            step="0.1"
+                            value={maxRating}
+                            onChange={(e) => setMaxRating(Number(e.target.value))}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-900 dark:border-slate-850 dark:text-slate-100 outline-hidden"
+                          />
+                        </div>
+
+                        {/* Min Reviews */}
+                        <div className="space-y-1.5">
+                          <label className="text-slate-400 uppercase tracking-widest block">Min Reviews</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={minReviews}
+                            onChange={(e) => setMinReviews(Number(e.target.value))}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-900 dark:border-slate-850 dark:text-slate-100 outline-hidden"
+                          />
+                        </div>
+
+                        {/* Max Reviews */}
+                        <div className="space-y-1.5">
+                          <label className="text-slate-400 uppercase tracking-widest block">Max Reviews</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={maxReviews}
+                            onChange={(e) => setMaxReviews(Number(e.target.value))}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-900 dark:border-slate-850 dark:text-slate-100 outline-hidden"
+                          />
+                        </div>
+
+                        {/* Website Check */}
+                        <div className="space-y-1.5">
+                          <label className="text-slate-450 uppercase tracking-widest block">Has Official Website</label>
+                          <select
+                            value={hasWebsite}
+                            onChange={(e) => setHasWebsite(e.target.value as any)}
+                            className="w-full px-3 py-2 bg-slate-55 border border-slate-205 rounded-lg dark:bg-slate-900 dark:border-slate-850 dark:text-slate-100 outline-hidden cursor-pointer font-bold"
+                          >
+                            <option value="any">Any Presence</option>
+                            <option value="yes">Yes, Has Website</option>
+                            <option value="no">No Website Deficit</option>
+                          </select>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Dashboard Results Table */}
+                <ResultsTable 
+                  leads={leads}
+                  savedLeads={savedLeads}
+                  onSaveLead={handleSaveLead}
+                  onRemoveLead={handleRemoveLead}
+                  onSelectLead={setSelectedLead}
+                  isLoading={isLoading}
+                  citySearched={lastCitySearched}
+                />
+
+                {/* Bottom section: Recent Searches History logs */}
+                {searchHistory.length > 0 && (
+                  <div className="bg-white border rounded-2xl p-6 dark:bg-slate-950 dark:border-slate-850">
+                    <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-850 gap-2.5">
+                      <div className="flex items-center space-x-2">
+                        <History className="w-5 h-5 text-slate-400" />
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Recent Search Discoveries History</h4>
+                      </div>
+                      <button
+                        onClick={handleClearHistory}
+                        className="text-xs text-slate-400 hover:text-rose-600 transition-colors uppercase font-bold tracking-wider cursor-pointer"
+                      >
+                        Clear logs
+                      </button>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 dark:divide-slate-850 text-xs">
+                      {searchHistory.slice(0, 5).map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => applyHistoryItem(item)}
+                          className="flex items-center justify-between py-3 hover:bg-slate-50/40 dark:hover:bg-slate-900/10 px-2 rounded-lg cursor-pointer transition-colors group"
+                        >
+                          <div className="flex items-center space-x-3 truncate">
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{item.category}</span>
+                            <span className="text-slate-400 font-semibold">•</span>
+                            <span className="text-slate-500 font-medium dark:text-slate-400">{item.city}</span>
+                            <span className="hidden text-[10px] text-slate-400 font-mono sm:inline">
+                              (Min rating: {item.filters?.minRating || 1.0} | Website: {item.filters?.hasWebsite || 'any'})
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-bold shrink-0">
+                            <span>{item.resultsCount} leads mapped</span>
+                            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'saved' && (
+              <motion.div
+                key="saved-tab"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                <div className="space-y-1 py-1">
+                  <h1 className="text-2xl font-black font-sans tracking-tight text-indigo-700 dark:text-indigo-400">
+                    Your Saved Business Leads CRM ({savedLeads.length})
+                  </h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-404 font-medium">
+                    Analyze, manage, and plan high-conversion outbound strategies for saved targets locally or sync'd online.
+                  </p>
+                </div>
+
+                {savedLeads.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-16 text-center border-2 border-dashed border-slate-200 rounded-3xl dark:border-slate-800 bg-white dark:bg-slate-950">
+                    <div className="p-4 rounded-full bg-slate-50 dark:bg-slate-900 text-indigo-500 mb-4 animate-bounce">
+                      <BookmarkCheck className="w-10 h-10 stroke-1.5" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">CRM Inventory Empty</h3>
+                    <p className="max-w-md mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      When discovering matching directories in Search Discoverer, toggle the bookmark save flag to collect prospects here.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('search')}
+                      className="mt-5 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 font-bold text-sm text-white rounded-xl transition-all cursor-pointer shadow-md"
+                    >
+                      Go discover prospects
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* CRM Leads grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {savedLeads.map((item) => {
+                        const hasWeb = !!item.website;
+                        const isLowReviews = (item.reviewCount || 0) < 30;
+                        const isPoorRating = (item.rating || 0) < 4.2;
+
+                        return (
+                          <div 
+                            key={item.id} 
+                            className="p-5 border border-slate-200 bg-white rounded-2xl dark:border-slate-850 dark:bg-slate-950 flex flex-col justify-between hover:border-indigo-200 dark:hover:border-indigo-800/60 shadow-xs transition-all relative group"
+                          >
+                            <div>
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase bg-indigo-55/10 px-2 py-0.5 rounded-md">
+                                    {item.category}
+                                  </span>
+                                  <h3 
+                                    onClick={() => setSelectedLead(item)}
+                                    className="text-base font-black text-slate-900 group-hover:text-indigo-600 dark:text-slate-50 dark:group-hover:text-indigo-400 transition-colors cursor-pointer pt-1"
+                                  >
+                                    {item.name}
+                                  </h3>
+                                  <p className="text-xs text-slate-400 dark:text-slate-500 flex items-center space-x-1.5 mt-0.5">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    <span className="truncate max-w-[200px]" title={item.address}>{item.address}</span>
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center space-x-1 bg-amber-50 dark:bg-amber-950/20 text-amber-805 px-2 py-1 rounded-md border border-amber-100 dark:border-amber-900/20 shrink-0">
+                                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300">{item.rating ? item.rating.toFixed(1) : 'N/A'}</span>
+                                </div>
+                              </div>
+
+                              {/* Outreach deficit items badges */}
+                              <div className="flex flex-wrap gap-1.5 mt-4">
+                                {!hasWeb && (
+                                  <span className="text-[10px] bg-rose-50 border border-rose-100 text-rose-800 dark:bg-rose-950/30 dark:border-rose-900/30 dark:text-rose-350 px-2 py-0.5 rounded-md font-bold uppercase tracking-wide">
+                                    No Website
+                                  </span>
+                                )}
+                                {isLowReviews && (
+                                  <span className="text-[10px] bg-amber-50 border border-amber-100 text-amber-800 dark:bg-amber-950/30 dark:border-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded-md font-semibold tracking-wide">
+                                    Low reviews ({item.reviewCount})
+                                  </span>
+                                )}
+                                {isPoorRating && (
+                                  <span className="text-[10px] bg-red-55/10 border border-red-200 text-red-800 dark:border-red-900/30 dark:text-red-350 px-2 py-0.5 rounded-md font-semibold tracking-wide">
+                                    Poor Rating ({item.rating})
+                                  </span>
+                                )}
+                                {hasWeb && !isLowReviews && !isPoorRating && (
+                                  <span className="text-[10px] bg-slate-50 border text-slate-400 dark:bg-slate-900 dark:border-slate-800 px-2 py-0.5 rounded-md">
+                                    Healthy Profile
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-850 pt-4 mt-5 gap-3.5">
+                              <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                                Saved: {new Date(item.savedAt).toLocaleDateString()}
+                              </span>
+                              <div className="flex items-center space-x-2 shrink-0">
+                                <button
+                                  onClick={() => setSelectedLead(item)}
+                                  className="px-3 py-1.5 bg-slate-50 border hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-305 text-xs font-semibold rounded-lg flex items-center space-x-1 cursor-pointer transition-colors border-slate-200"
+                                >
+                                  <span>Generate Pitch</span>
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveLead(item.id)}
+                                  className="p-1.5 border border-transparent text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-100 dark:hover:bg-rose-950/50 rounded-lg cursor-pointer transition-all"
+                                  title="Delete Lead"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'connections' && (
+              <motion.div
+                key="connections-tab"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ConnectionsPanel 
+                  supabaseStatus={{
+                    hasCredentials: supabaseStatus.hasCredentials,
+                    url: supabaseStatus.url,
+                    isConnected: supabaseStatus.isConnected,
+                    error: supabaseStatus.error
+                  }}
+                  googleMapsStatus={{
+                    hasKey: googleMapsConfigured,
+                    keyPlaceholder: MAPS_KEY
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+      </div>
+
+      {/* Immersive Business Inspectors Drawer / Modal */}
+      {selectedLead && (
+        <BusinessModal 
+          lead={selectedLead}
+          onClose={() => setSelectedLead(null)}
+          onSave={handleSaveLead}
+          isSaved={savedLeadsNameCityMap.has(`${selectedLead.name.toLowerCase()}_${selectedLead.city.toLowerCase()}`)}
+        />
+      )}
+    </div>
+  );
+}
