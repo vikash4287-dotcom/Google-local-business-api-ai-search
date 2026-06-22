@@ -1,4 +1,5 @@
 import { Business } from '../types';
+import { USA_STATES_AND_CITIES } from './usaGeographics';
 
 // Helper lists for realistic generation
 const BUSINESS_TEMPLATES: Record<string, { prefixes: string[]; suffixes: string[] }> = {
@@ -103,9 +104,9 @@ const USA_CITIES_STATES: Record<string, string> = {
   Portland: 'OR',
   Atlanta: 'GA',
   Nashville: 'TN',
-  San_Francisco: 'CA',
+  'San Francisco': 'CA',
   Orlando: 'FL',
-  Las_Vegas: 'NV'
+  'Las Vegas': 'NV'
 };
 
 export function generateMockLeads(
@@ -120,7 +121,18 @@ export function generateMockLeads(
   }
 ): Business[] {
   const normCity = city.trim();
-  const stateCode = USA_CITIES_STATES[normCity] || 'US';
+  // robust lookup: first search in our comprehensive database
+  const foundState = USA_STATES_AND_CITIES.find(s => 
+    s.cities.some(c => c.toLowerCase() === normCity.toLowerCase())
+  );
+  let stateCode = foundState ? foundState.code : '';
+
+  if (!stateCode) {
+    const lookupKey = Object.keys(USA_CITIES_STATES).find(
+      k => k.toLowerCase().replace(/_/g, ' ') === normCity.toLowerCase().replace(/_/g, ' ')
+    ) || '';
+    stateCode = lookupKey ? USA_CITIES_STATES[lookupKey] : 'US';
+  }
   
   const temp = BUSINESS_TEMPLATES[category] || {
     prefixes: ['Apex', 'Elite', 'Summit', 'Premier', 'Vanguard'],

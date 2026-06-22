@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Search, 
   MapPin, 
@@ -22,6 +22,7 @@ import ResultsTable from './components/ResultsTable';
 import BusinessModal from './components/BusinessModal';
 import ConnectionsPanel from './components/ConnectionsPanel';
 import { generateMockLeads } from './services/leadsMock';
+import { USA_STATES_AND_CITIES } from './services/usaGeographics';
 import { databaseService } from './services/db';
 
 export default function App() {
@@ -44,6 +45,121 @@ export default function App() {
   const [city, setCity] = useState('Seattle');
   const [category, setCategory] = useState('Restaurants');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
+  // Geographic columns
+  const [country] = useState('USA');
+  const [selectedState, setSelectedState] = useState('WA');
+
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+  const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Dynamically filtered cities based on query, country, and selected state
+  const filteredCities = useMemo(() => {
+    if (!city || city.trim() === '') return [];
+    const query = city.trim().toLowerCase();
+
+    let pool: string[] = [];
+    if (selectedState === 'All') {
+      // Gather all unique cities in USA
+      const allCities = new Set<string>();
+      USA_STATES_AND_CITIES.forEach(st => {
+        st.cities.forEach(c => allCities.add(c));
+      });
+      pool = Array.from(allCities);
+    } else {
+      const target = USA_STATES_AND_CITIES.find(st => st.code === selectedState);
+      if (target) {
+        pool = target.cities;
+      }
+    }
+
+    return pool
+      .filter(c => c.toLowerCase().startsWith(query))
+      .sort((a, b) => a.localeCompare(b));
+  }, [city, selectedState]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        suggestionsRef.current && 
+        !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowCitySuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleSelectCity = (selectedCity: string) => {
+    setCity(selectedCity);
+    setShowCitySuggestions(false);
+    setHighlightedSuggestionIndex(-1);
+    
+    // Auto-align the state dropdown if we're in "All" mode
+    if (selectedState === 'All') {
+      const matchState = USA_STATES_AND_CITIES.find(st => 
+        st.cities.some(c => c.toLowerCase() === selectedCity.toLowerCase())
+      );
+      if (matchState) {
+        setSelectedState(matchState.code);
+      }
+    }
+    
+    handleSearch(false, selectedCity);
+  };
+
+  const handleSelectStateChange = (stateCode: string) => {
+    setSelectedState(stateCode);
+    if (stateCode !== 'All') {
+      const target = USA_STATES_AND_CITIES.find(st => st.code === stateCode);
+      if (target && target.cities.length > 0) {
+        // Change to the first city of that state and search it
+        const firstCity = target.cities[0];
+        setCity(firstCity);
+        handleSearch(false, firstCity);
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredCities.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedSuggestionIndex(prev => 
+        prev < filteredCities.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedSuggestionIndex(prev => 
+        prev > 0 ? prev - 1 : filteredCities.length - 1
+      );
+    } else if (e.key === 'Enter') {
+      if (highlightedSuggestionIndex >= 0 && highlightedSuggestionIndex < filteredCities.length) {
+        e.preventDefault();
+        handleSelectCity(filteredCities[highlightedSuggestionIndex]);
+      } else {
+        // Find best match if exact match or single result
+        const exactMatch = filteredCities.find(c => c.toLowerCase() === city.trim().toLowerCase());
+        if (exactMatch) {
+          e.preventDefault();
+          handleSelectCity(exactMatch);
+        } else if (filteredCities.length > 0) {
+          e.preventDefault();
+          handleSelectCity(filteredCities[0]);
+        }
+      }
+    } else if (e.key === 'Escape') {
+      setShowCitySuggestions(false);
+    }
+  };
 
   // Filter values
   const [minRating, setMinRating] = useState<number>(1.0);
@@ -109,8 +225,9 @@ export default function App() {
   }, []);
 
   // Execution Search Logic
-  const handleSearch = async (isInitialSeed = false) => {
-    if (!city.trim()) return;
+  const handleSearch = async (isInitialSeed = false, forcedCity?: string) => {
+    const targetCity = (forcedCity !== undefined ? forcedCity : city).trim();
+    if (!targetCity) return;
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -130,7 +247,7 @@ export default function App() {
         const service = new (window as any).google.maps.places.PlacesService(tempDiv);
         
         service.textSearch({
-          query: `${category} in ${city.trim()}`
+          query: `${category} in ${targetCity}`
         }, async (results: any[], status: any) => {
           if (status === 'OK' && results) {
             const mappedLeads: Business[] = results.map((place: any, index: number) => {
@@ -145,7 +262,7 @@ export default function App() {
                 rating: place.rating || undefined,
                 reviewCount: place.user_ratings_total || 0,
                 category,
-                city: city.trim()
+                city: targetCity
               };
             });
 
@@ -160,12 +277,12 @@ export default function App() {
             });
 
             setLeads(filtered);
-            setLastCitySearched(city.trim());
+            setLastCitySearched(targetCity);
             setIsLoading(false);
 
             if (!isInitialSeed) {
               const hEntry = await databaseService.addSearchHistory({
-                city: city.trim(),
+                city: targetCity,
                 category,
                 resultsCount: filtered.length,
                 filters: activeFilters
@@ -180,14 +297,14 @@ export default function App() {
         // Run with LeadMine Smart Generator simulator
         // Simulates realistic delays
         await new Promise(resolve => setTimeout(resolve, 800));
-        const mockResults = generateMockLeads(city.trim(), category, activeFilters);
+        const mockResults = generateMockLeads(targetCity, category, activeFilters);
         setLeads(mockResults);
-        setLastCitySearched(city.trim());
+        setLastCitySearched(targetCity);
         setIsLoading(false);
 
         if (!isInitialSeed) {
           const hEntry = await databaseService.addSearchHistory({
-            city: city.trim(),
+            city: targetCity,
             category,
             resultsCount: mockResults.length,
             filters: activeFilters
@@ -198,9 +315,9 @@ export default function App() {
     } catch (err: any) {
       console.error('Unified lead discovery error:', err);
       // Fallback cleanly
-      const mockResults = generateMockLeads(city.trim(), category, activeFilters);
+      const mockResults = generateMockLeads(targetCity, category, activeFilters);
       setLeads(mockResults);
-      setLastCitySearched(city.trim());
+      setLastCitySearched(targetCity);
       setIsLoading(false);
       setErrorMessage(err.message || 'Connecting to Google Places API failed, loaded LeadMine local simulator results instead.');
     }
@@ -313,25 +430,112 @@ export default function App() {
 
                 {/* Filters/Search Hub card */}
                 <div className="p-6 bg-white border border-slate-200 rounded-2xl dark:border-slate-850 dark:bg-slate-950/70 shadow-xs space-y-4">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-                    {/* City input */}
-                    <div className="space-y-1.5 md:col-span-5">
-                      <label className="text-xs font-bold text-slate-450 uppercase tracking-widest block">City or Town</label>
+                  {/* First row: Comprehensive US Geographic controls (Country, State, City/Town) */}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-12 pb-2 border-b border-dashed border-slate-150 dark:border-slate-850">
+                    {/* Country column */}
+                    <div className="space-y-1.5 md:col-span-3">
+                      <label className="text-xs font-bold text-slate-450 uppercase tracking-widest block">Country</label>
                       <div className="relative">
-                        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-                        <input
-                          type="text"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          placeholder="e.g. Seattle, Denver, Chicago..."
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-55/65 hover:bg-slate-55 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-sm font-semibold transition-all focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
-                        />
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base">🇺🇸</span>
+                        <select
+                          disabled
+                          className="w-full pl-9 pr-4 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 dark:text-slate-400 text-slate-500 rounded-xl text-sm font-semibold cursor-not-allowed outline-hidden"
+                        >
+                          <option value="USA">USA ({country})</option>
+                        </select>
                       </div>
                     </div>
 
-                    {/* Category Selector */}
+                    {/* State column - Full 50 states dropdown */}
                     <div className="space-y-1.5 md:col-span-4">
-                      <label className="text-xs font-bold text-slate-455 uppercase tracking-widest block">Business Category</label>
+                      <label className="text-xs font-bold text-slate-450 uppercase tracking-widest block">US State</label>
+                      <select
+                        value={selectedState}
+                        onChange={(e) => handleSelectStateChange(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-55/65 hover:bg-slate-55 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-sm font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
+                      >
+                        <option value="All">All States (Comprehensive)</option>
+                        {USA_STATES_AND_CITIES.map((st) => (
+                          <option key={st.code} value={st.code}>
+                            {st.name} ({st.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* City input column with reactive suggestions */}
+                    <div className="space-y-1.5 md:col-span-5">
+                      <label className="text-xs font-bold text-slate-455 uppercase tracking-widest block flex items-center justify-between">
+                        <span>City or Town</span>
+                        {showCitySuggestions && (
+                          <span className="text-[10px] text-indigo-505 dark:text-indigo-400 font-bold normal-case tracking-normal">
+                            Matching {filteredCities.length} cities...
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+                        <input
+                          ref={inputRef}
+                          type="text"
+                          value={city}
+                          onChange={(e) => {
+                            setCity(e.target.value);
+                            setShowCitySuggestions(true);
+                            setHighlightedSuggestionIndex(-1);
+                          }}
+                          onFocus={() => setShowCitySuggestions(true)}
+                          onKeyDown={handleKeyDown}
+                          placeholder={selectedState === 'All' ? "Type a letter, e.g. S, D, L..." : "Type first letter..."}
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-55/65 hover:bg-slate-55 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-sm font-semibold transition-all focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-hidden"
+                        />
+                        {showCitySuggestions && filteredCities.length > 0 && (
+                          <div 
+                            ref={suggestionsRef}
+                            className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-60 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl divide-y divide-slate-150 dark:divide-slate-850/60"
+                          >
+                            {filteredCities.map((item, index) => {
+                              const isHighlighted = index === highlightedSuggestionIndex;
+                              const queryLen = city.trim().length;
+                              const matchingPart = item.substring(0, queryLen);
+                              const remainingPart = item.substring(queryLen);
+
+                              return (
+                                <button
+                                  key={item}
+                                  type="button"
+                                  onClick={() => handleSelectCity(item)}
+                                  onMouseEnter={() => setHighlightedSuggestionIndex(index)}
+                                  className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-semibold flex items-center justify-between transition-colors ${
+                                    isHighlighted 
+                                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300' 
+                                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-850/40'
+                                  }`}
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <MapPin className={`w-3.5 h-3.5 ${isHighlighted ? 'text-indigo-500 animate-pulse' : 'text-slate-400'}`} />
+                                    <span>
+                                      <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{matchingPart}</span>
+                                      <span className="opacity-90">{remainingPart}</span>
+                                    </span>
+                                  </div>
+                                  <span className="text-[9px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md uppercase tracking-wider font-mono">
+                                    Select
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Second row: Business Category Selector & CTA actions */}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-12 pt-1">
+                    {/* Category Selector */}
+                    <div className="space-y-1.5 md:col-span-8">
+                      <label className="text-xs font-bold text-slate-455 uppercase tracking-widest block font-sans">Business Category</label>
                       <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
@@ -344,7 +548,7 @@ export default function App() {
                     </div>
 
                     {/* Filter Toggle & Search button combo */}
-                    <div className="flex items-end space-x-2.5 md:col-span-3">
+                    <div className="flex items-end space-x-2.5 md:col-span-4">
                       <button
                         onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                         className={`p-2.5 border rounded-xl flex items-center justify-center transition-all cursor-pointer ${
@@ -359,7 +563,7 @@ export default function App() {
 
                       <button
                         onClick={() => handleSearch(false)}
-                        className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md shadow-indigo-600/10"
+                        className="flex-1 py-11/12 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-md shadow-indigo-600/10 animate-fade-in"
                       >
                         <Search className="w-4.5 h-4.5" />
                         <span>Discover Leads</span>
