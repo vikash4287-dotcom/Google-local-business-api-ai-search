@@ -13,9 +13,11 @@ import {
   AlertCircle, 
   FileSpreadsheet, 
   CheckCircle,
-  Eye
+  Eye,
+  Activity
 } from 'lucide-react';
 import { Business, SavedBusiness } from '../types';
+import { calculateLeadScore } from '../utils/score';
 
 interface ResultsTableProps {
   leads: Business[];
@@ -213,6 +215,7 @@ export default function ResultsTable({
               <tr className="bg-slate-55/60 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase border-b border-slate-200 dark:border-slate-800">
                 <th className="py-4 px-5">Business Name</th>
                 <th className="py-4 px-4">Category</th>
+                <th className="py-4 px-4">Lead Quality Score</th>
                 <th className="py-4 px-4">
                   <button onClick={() => handleSort('rating')} className="flex items-center space-x-1.5 hover:text-slate-800 dark:hover:text-slate-200">
                     <span>Rating</span>
@@ -255,6 +258,28 @@ export default function ResultsTable({
                     {/* Category */}
                     <td className="py-4 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
                       {lead.category}
+                    </td>
+
+                    {/* Lead Quality Score Badge */}
+                    <td className="py-4 px-4">
+                      {(() => {
+                        const { score, label, badgeClass, dotColor } = calculateLeadScore(
+                          lead.rating,
+                          lead.reviewCount,
+                          !!lead.website
+                        );
+                        return (
+                          <div 
+                            className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold border shadow-xs transition-transform hover:scale-102 cursor-help ${badgeClass}`}
+                            title={`Audited Deficits score evaluation:\n• Rating Deficit: ${lead.rating !== undefined ? (5.0 - lead.rating).toFixed(1) : 'No Rating'}\n• Reviews Count: ${lead.reviewCount || 0}\n• Custom Website: ${lead.website ? 'Provided' : 'No Website (Deficit)'}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                            <span className="font-mono">{score}</span>
+                            <span className="opacity-40">-</span>
+                            <span>{label}</span>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Rating */}
@@ -359,6 +384,22 @@ export default function ResultsTable({
                   <span className="text-[10px] font-bold tracking-widest text-indigo-600 bg-indigo-55/10 dark:text-indigo-400 px-2 py-0.5 rounded-md uppercase">
                     {lead.category}
                   </span>
+                  {(() => {
+                    const { score, label, badgeClass, dotColor } = calculateLeadScore(
+                      lead.rating,
+                      lead.reviewCount,
+                      !!lead.website
+                    );
+                    return (
+                      <div 
+                        className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[9px] font-black border uppercase tracking-wider ${badgeClass}`}
+                        title={`Score: ${score}`}
+                      >
+                        <span className={`w-1 h-1 rounded-full ${dotColor}`} />
+                        <span>Lead Score: {score}</span>
+                      </div>
+                    );
+                  })()}
                   <div className="flex items-center space-x-1 bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-md border border-amber-100 dark:border-amber-900/30">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                     <span className="text-xs font-bold text-amber-800 dark:text-amber-300">{lead.rating ? lead.rating.toFixed(1) : 'N/A'}</span>

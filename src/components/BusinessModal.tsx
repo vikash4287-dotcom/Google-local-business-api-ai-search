@@ -13,10 +13,12 @@ import {
   AlertTriangle,
   Lightbulb,
   Building,
-  Target
+  Target,
+  Award
 } from 'lucide-react';
 import { Business } from '../types';
 import AIPitchModal from './AIPitchModal';
+import { calculateLeadScore } from '../utils/score';
 
 interface BusinessModalProps {
   lead: (Business & { status?: 'New' | 'Contacted' | 'Interested' | 'Do Not Contact' }) | null;
@@ -229,6 +231,60 @@ export default function BusinessModal({
               </span>
             </div>
           </div>
+
+          {/* Lead Quality Score audit meter */}
+          {(() => {
+            const { score, label, badgeClass, dotColor } = calculateLeadScore(
+              lead.rating,
+              lead.reviewCount,
+              !!lead.website
+            );
+
+            // Determine color grade styling for progress bar
+            let barColor = 'bg-rose-500';
+            if (score >= 75) barColor = 'bg-rose-500';
+            else if (score >= 50) barColor = 'bg-indigo-600';
+            else if (score >= 30) barColor = 'bg-amber-500';
+            else barColor = 'bg-slate-400';
+
+            return (
+              <div className="p-5 border border-slate-150 bg-slate-50/50 rounded-xl dark:border-slate-800 dark:bg-slate-900/30 flex flex-col space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 flex items-center space-x-1.5">
+                      <Award className="w-4.5 h-4.5 text-indigo-554 dark:text-indigo-400" />
+                      <span>Lead Outreach Quality Score</span>
+                    </h4>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">
+                      Compound Marketing Deficit Opportunity Scorecard
+                    </p>
+                  </div>
+                  <div className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-black border shadow-xs shrink-0 self-start sm:self-center ${badgeClass}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                    <span>{score} &bull; {label}</span>
+                  </div>
+                </div>
+
+                {/* Progress bar visual meter */}
+                <div className="space-y-1">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-500 ease-out rounded-full ${barColor}`}
+                      style={{ width: `${score}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[9px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wide">
+                    <span>Baseline (0)</span>
+                    <span>High Deficit / High Priority Opportunity (100)</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                  This scorecard grades local leads based on outreach potential. A higher score highlights significant digital gaps (lack of responsive website, rating deficit, or low reviews) representing lucrative design, development, SEO, and rating acquisition packages you can sell.
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Core audited deficits list */}
           <div className="p-5 border border-amber-200 bg-amber-50/20 rounded-xl dark:border-amber-900/40 dark:bg-amber-950/10">

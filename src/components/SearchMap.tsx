@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useAdvancedMarkerRef } from '@vis.gl/react-google-maps';
 import { Star, MapPin, Globe, Phone, Bookmark, BookmarkCheck, LayoutGrid, Info, Sparkles, X } from 'lucide-react';
 import { Business, SavedBusiness } from '../types';
+import { calculateLeadScore } from '../utils/score';
 
 interface SearchMapProps {
   leads: Business[];
@@ -64,9 +65,23 @@ const LeadMarker: React.FC<LeadMarkerProps> = ({
                 <h4 className="font-extrabold text-slate-900 leading-tight pr-1 text-sm">
                   {lead.name}
                 </h4>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 tracking-wider">
-                  {lead.category}
-                </p>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider shrink-0">
+                    {lead.category}
+                  </span>
+                  {(() => {
+                    const { score, label } = calculateLeadScore(
+                      lead.rating,
+                      lead.reviewCount,
+                      !!lead.website
+                    );
+                    return (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] bg-slate-100 border border-slate-200 text-slate-700 font-bold leading-none select-none">
+                        Score: {score} ({label})
+                      </span>
+                    );
+                  })()}
+                </div>
               </div>
               <div className="flex items-center space-x-0.5 bg-amber-50 px-1.5 py-0.5 rounded text-amber-800 border border-amber-100 font-bold text-[10px] shrink-0">
                 <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
