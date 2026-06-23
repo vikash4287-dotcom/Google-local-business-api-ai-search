@@ -149,6 +149,52 @@ const USA_CITIES_STATES: Record<string, string> = {
   'Las Vegas': 'NV'
 };
 
+const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  'Seattle': { lat: 47.6062, lng: -122.3321 },
+  'Denver': { lat: 39.7392, lng: -104.9903 },
+  'Chicago': { lat: 41.8781, lng: -87.6298 },
+  'Austin': { lat: 30.2672, lng: -97.7431 },
+  'Boston': { lat: 42.3601, lng: -71.0589 },
+  'Miami': { lat: 25.7617, lng: -80.1918 },
+  'New York': { lat: 40.7128, lng: -74.0060 },
+  'Los Angeles': { lat: 34.0522, lng: -118.2437 },
+  'Houston': { lat: 29.7604, lng: -95.3698 },
+  'Phoenix': { lat: 33.4484, lng: -112.0740 },
+  'Philadelphia': { lat: 39.9526, lng: -75.1652 },
+  'San Antonio': { lat: 29.4241, lng: -98.4936 },
+  'San Diego': { lat: 32.7157, lng: -117.1611 },
+  'Dallas': { lat: 32.7767, lng: -96.7970 },
+  'San Jose': { lat: 37.3382, lng: -121.8863 },
+  'Detroit': { lat: 42.3314, lng: -83.0458 },
+  'Portland': { lat: 45.5152, lng: -122.6784 },
+  'Atlanta': { lat: 33.7490, lng: -84.3880 },
+  'Nashville': { lat: 36.1627, lng: -86.7816 },
+  'San Francisco': { lat: 37.7749, lng: -122.4194 },
+  'Orlando': { lat: 28.5383, lng: -81.3792 },
+  'Las Vegas': { lat: 36.1716, lng: -115.1398 }
+};
+
+function getCityBaseCoordinates(cityName: string): { lat: number; lng: number } {
+  const norm = cityName.trim();
+  const matchedKey = Object.keys(CITY_COORDINATES).find(
+    k => k.toLowerCase() === norm.toLowerCase()
+  );
+  if (matchedKey) {
+    return { ...CITY_COORDINATES[matchedKey] };
+  }
+
+  // Fallback to deterministic coordinate based on name hash
+  let hashVal = 0;
+  for (let i = 0; i < norm.length; i++) {
+    hashVal = norm.charCodeAt(i) + ((hashVal << 5) - hashVal);
+  }
+  
+  // Contiguous US bounding box: Lat 32.0 to 44.0, Lng -120.0 to -75.0
+  const lat = 32.0 + (Math.abs(hashVal % 120) / 10.0);
+  const lng = -120.0 + (Math.abs((hashVal >> 3) % 450) / 10.0);
+  return { lat, lng };
+}
+
 export function generateMockLeads(
   city: string,
   category: string,
@@ -201,6 +247,8 @@ export function generateMockLeads(
     return arr[idx];
   }
 
+  const baseCoords = getCityBaseCoordinates(normCity);
+
   // Generate 40 candidates, then filter them to present a custom results set
   for (let i = 0; i < 40; i++) {
     const prefix = pickRandom(temp.prefixes);
@@ -228,6 +276,10 @@ export function generateMockLeads(
     const phoneLine = 1000 + (seed % 8999);
     const phone = `(${areaCode}) ${phonePrefix}-${phoneLine}`;
 
+    // Add deterministic geo jitter (+/- 0.035 degrees, visual spread across the city)
+    const latOffset = (random() - 0.5) * 0.07;
+    const lngOffset = (random() - 0.5) * 0.07;
+
     const business: Business = {
       id: `lead_${category.toLowerCase().replace(/\s+/g, '_')}_${i}_${cleanNameUrl}`,
       name,
@@ -237,7 +289,9 @@ export function generateMockLeads(
       rating,
       reviewCount,
       category,
-      city: normCity
+      city: normCity,
+      latitude: Number((baseCoords.lat + latOffset).toFixed(6)),
+      longitude: Number((baseCoords.lng + lngOffset).toFixed(6))
     };
 
     // Filter checks

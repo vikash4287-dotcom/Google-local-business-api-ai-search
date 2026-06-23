@@ -8,6 +8,8 @@ export interface Business {
   reviewCount?: number;
   category: string;
   city: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface SavedBusiness extends Business {
