@@ -37,7 +37,7 @@ import UpgradeModal from './components/UpgradeModal';
 export default function App() {
   // Theme state (SaaS default is high-contrast light, with full dark mode support)
   const [isDark, setIsDark] = useState<boolean>(() => {
-    const saved = localStorage.getItem('leadmine_ai_theme');
+    const saved = localStorage.getItem('localshop_ai_theme');
     return saved === 'dark';
   });
 
@@ -270,7 +270,7 @@ export default function App() {
 
   // Theme effect hook
   useEffect(() => {
-    localStorage.setItem('leadmine_ai_theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('localshop_ai_theme', isDark ? 'dark' : 'light');
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
@@ -399,7 +399,7 @@ export default function App() {
           }
         });
       } else {
-        // Run with LeadMine Smart Generator simulator
+        // Run with LocalShop Smart Generator simulator
         // Simulates realistic delays
         await new Promise(resolve => setTimeout(resolve, 800));
         const mockResults = generateMockLeads(targetCity, category, activeFilters);
@@ -429,7 +429,7 @@ export default function App() {
       setLeads(sliced);
       setLastCitySearched(targetCity);
       setIsLoading(false);
-      setErrorMessage(err.message || 'Connecting to Google Places API failed, loaded LeadMine local simulator results instead.');
+      setErrorMessage(err.message || 'Connecting to Google Places API failed, loaded LocalShop local simulator results instead.');
     }
   };
 
@@ -527,15 +527,32 @@ export default function App() {
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
-                {/* Hero block */}
-                <div className="space-y-3 py-10 md:py-14 text-center max-w-3xl mx-auto">
-                  <h1 className="text-2xl font-black font-sans md:text-3.5xl tracking-tight text-slate-900 dark:text-slate-50 flex items-center justify-center gap-2">
-                    <span>Find Businesses Losing Customers Online</span>
-                    <Sparkles className="w-5.5 h-5.5 text-indigo-500 animate-pulse hidden sm:inline-block" />
-                  </h1>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                    Discover local businesses with poor online presence, outdated metrics, or zero website and turn them into high-paying web and marketing clients.
-                  </p>
+                {/* Hero block with American Statue of Liberty watermark visual backdrop */}
+                <div className="relative overflow-hidden rounded-3xl border border-slate-100/80 dark:border-slate-850 bg-gradient-to-br from-indigo-50/30 via-white to-indigo-50/10 dark:from-indigo-950/20 dark:via-slate-950/40 dark:to-slate-950/60 px-6 py-12 md:py-16 text-center max-w-4xl mx-auto shadow-xs">
+                  {/* Watermark Statue of Liberty overlay for an American premium feel */}
+                  <div className="absolute inset-x-0 bottom-0 top-0 opacity-[0.06] dark:opacity-[0.14] pointer-events-none select-none transition-opacity duration-350">
+                    <img
+                      src="https://images.unsplash.com/photo-1501594907352-04cda38ebc29?q=80&w=1200&auto=format&fit=crop"
+                      alt="Statue of Liberty"
+                      className="w-full h-full object-cover object-center mix-blend-luminosity select-none"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  {/* Extra subtle overlay to secure text readability in light & dark */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-transparent to-white/45 dark:from-slate-950/20 dark:to-slate-950/40 pointer-events-none select-none" />
+
+                  <div className="relative z-10 space-y-3.5 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase bg-indigo-50/80 dark:bg-indigo-950/65 text-indigo-600 dark:text-indigo-400 tracking-wider inline-block border border-indigo-100/40 dark:border-indigo-900/40 select-none">
+                      🇺🇸 Local business discovery engine
+                    </span>
+                    <h1 className="text-2xl font-black font-sans md:text-3.5xl tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-2">
+                      <span>Discover Businesses That Need Your Services</span>
+                      <Sparkles className="w-5.5 h-5.5 text-indigo-500 animate-pulse hidden sm:inline-block" />
+                    </h1>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 font-bold leading-relaxed max-w-xl mx-auto">
+                      Find local businesses with poor ratings, low reviews, outdated websites, or no website at all.
+                    </p>
+                  </div>
                 </div>
 
                 {errorMessage && (

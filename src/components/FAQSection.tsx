@@ -16,19 +16,19 @@ export default function FAQSection() {
 
   const faqData: FAQItem[] = [
     {
-      question: "What is LeadMine AI?",
+      question: "What is LocalShop AI?",
       answer: (
         <div className="space-y-2">
-          <p>LeadMine AI is a local business lead generation and opportunity discovery platform that helps agencies, freelancers, SEO consultants, marketers, and web developers find businesses that need digital marketing services.</p>
+          <p>LocalShop AI is a local business lead generation and opportunity discovery platform that helps agencies, freelancers, SEO consultants, marketers, and web developers find businesses that need digital marketing services.</p>
           <p>The platform identifies local businesses with weak online presence, low Google review counts, poor ratings, missing websites, and other growth opportunities.</p>
         </div>
       )
     },
     {
-      question: "How does LeadMine AI find local business leads?",
+      question: "How does LocalShop AI find local business leads?",
       answer: (
         <div className="space-y-2">
-          <p>LeadMine AI analyzes publicly available business information, including Google Business Profile data, website presence, ratings, reviews, and business information to identify potential sales opportunities.</p>
+          <p>LocalShop AI analyzes publicly available business information, including Google Business Profile data, website presence, ratings, reviews, and business information to identify potential sales opportunities.</p>
           <p className="font-semibold text-slate-800 dark:text-slate-350">Users can search by:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>City</li>
@@ -61,10 +61,10 @@ export default function FAQSection() {
       )
     },
     {
-      question: "Who should use LeadMine AI?",
+      question: "Who should use LocalShop AI?",
       answer: (
         <div className="space-y-2 flex flex-col">
-          <p>LeadMine AI is built for:</p>
+          <p>LocalShop AI is built for:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Digital Marketing Agencies</li>
             <li>SEO Agencies</li>
@@ -83,7 +83,7 @@ export default function FAQSection() {
       answer: (
         <div className="space-y-2">
           <p>Yes.</p>
-          <p>LeadMine AI can identify businesses that do not currently have a website.</p>
+          <p>LocalShop AI can identify businesses that do not currently have a website.</p>
           <p className="font-semibold text-slate-800 dark:text-slate-350">These businesses are often strong prospects for:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Website Design Services</li>
@@ -110,17 +110,17 @@ export default function FAQSection() {
       )
     },
     {
-      question: "Does LeadMine AI generate sales proposals?",
+      question: "Does LocalShop AI generate sales proposals?",
       answer: (
         <div className="space-y-2">
           <p>Yes.</p>
-          <p>LeadMine AI can generate professional client proposals based on business weaknesses, website analysis, review performance, and growth opportunities.</p>
+          <p>LocalShop AI can generate professional client proposals based on business weaknesses, website analysis, review performance, and growth opportunities.</p>
           <p>Agencies can customize and export proposals before sending them to prospects.</p>
         </div>
       )
     },
     {
-      question: "Can LeadMine AI generate cold outreach emails?",
+      question: "Can LocalShop AI generate cold outreach emails?",
       answer: (
         <div className="space-y-2">
           <p>Yes.</p>
@@ -140,7 +140,7 @@ export default function FAQSection() {
       question: "How does the website audit feature work?",
       answer: (
         <div className="space-y-2">
-          <p>LeadMine AI analyzes business websites and evaluates:</p>
+          <p>LocalShop AI analyzes business websites and evaluates:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Mobile Friendliness</li>
             <li>Design Quality</li>
@@ -155,10 +155,10 @@ export default function FAQSection() {
       )
     },
     {
-      question: "Is LeadMine AI a local SEO tool?",
+      question: "Is LocalShop AI a local SEO tool?",
       answer: (
         <div className="space-y-2">
-          <p>LeadMine AI is not only a local SEO tool.</p>
+          <p>LocalShop AI is not only a local SEO tool.</p>
           <p>It combines:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Local Business Discovery</li>
@@ -185,7 +185,7 @@ export default function FAQSection() {
       question: "Which industries can I search?",
       answer: (
         <div className="space-y-2">
-          <p>LeadMine AI supports a wide range of local business categories, including:</p>
+          <p>LocalShop AI supports a wide range of local business categories, including:</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-1.5 text-xs">
             <span className="bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">Restaurants</span>
             <span className="bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">Dentists</span>
@@ -205,11 +205,11 @@ export default function FAQSection() {
       )
     },
     {
-      question: "Is LeadMine AI suitable for freelancers?",
+      question: "Is LocalShop AI suitable for freelancers?",
       answer: (
         <div className="space-y-2">
           <p>Absolutely.</p>
-          <p>Many freelancers use LeadMine AI to identify local businesses that need help with:</p>
+          <p>Many freelancers use LocalShop AI to identify local businesses that need help with:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Website Design</li>
             <li>SEO</li>
@@ -222,11 +222,11 @@ export default function FAQSection() {
       )
     },
     {
-      question: "How is LeadMine AI different from Google Maps?",
+      question: "How is LocalShop AI different from Google Maps?",
       answer: (
         <div className="space-y-2">
           <p>Google Maps shows businesses.</p>
-          <p>LeadMine AI identifies business opportunities.</p>
+          <p>LocalShop AI identifies business opportunities.</p>
           <p className="font-semibold">Instead of manually reviewing hundreds of listings, users receive:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Opportunity Scores</li>
@@ -255,26 +255,26 @@ export default function FAQSection() {
             <li>Medical Clinics</li>
             <li>Home Service Businesses</li>
           </ul>
-          <p>LeadMine AI helps identify businesses in these niches that may need marketing support.</p>
+          <p>LocalShop AI helps identify businesses in these niches that may need marketing support.</p>
         </div>
       )
     },
     {
-      question: "Does LeadMine AI use artificial intelligence?",
+      question: "Does LocalShop AI use artificial intelligence?",
       answer: (
         <div className="space-y-2">
           <p>Yes.</p>
-          <p>LeadMine AI uses advanced AI models to analyze businesses, generate recommendations, create outreach messages, perform website audits, and build sales proposals.</p>
+          <p>LocalShop AI uses advanced AI models to analyze businesses, generate recommendations, create outreach messages, perform website audits, and build sales proposals.</p>
           <p>The goal is to help agencies spend less time researching and more time closing clients.</p>
         </div>
       )
     },
     {
-      question: "Is LeadMine AI available in the United States?",
+      question: "Is LocalShop AI available in the United States?",
       answer: (
         <div className="space-y-2">
           <p>Yes.</p>
-          <p>LeadMine AI currently supports business discovery across cities and states throughout the United States.</p>
+          <p>LocalShop AI currently supports business discovery across cities and states throughout the United States.</p>
           <p>Additional regions may be added in future updates.</p>
         </div>
       )
@@ -314,7 +314,7 @@ export default function FAQSection() {
       {isSectionExpanded && (
         <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-top-4 duration-300">
           <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold px-2 mb-2 uppercase tracking-wider">
-            LeadMine AI Platform Information Directory ({faqData.length} topics)
+            LocalShop AI Platform Information Directory ({faqData.length} topics)
           </p>
           {faqData.map((item, index) => {
             const isOpen = openIndex === index;

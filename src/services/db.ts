@@ -13,7 +13,7 @@ import {
 import { Business, SavedBusiness, SearchHistory, ActiveUser, WebsiteAudit, Proposal, ServicePackagesDraft, OutreachToolkit, UserSubscription, SubscriptionTier } from '../types';
 
 // Keys for LocalStorage fallbacks
-const STORAGE_PREFIX = 'leadmine_ai_';
+const STORAGE_PREFIX = 'localshop_ai_';
 const LOCAL_KEYS = {
   USER: `${STORAGE_PREFIX}user`,
   SAVED: `${STORAGE_PREFIX}saved_businesses`,

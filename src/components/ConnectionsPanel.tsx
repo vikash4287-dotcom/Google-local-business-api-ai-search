@@ -84,7 +84,7 @@ export default function ConnectionsPanel({
           <span>SaaS Service Hub & Firebase Credentials</span>
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-          LeadMine AI operates on an offline-first, cloud-capable SaaS pipeline. Discover business leads instantly using our local smart simulator, or synchronize directly with Google Places and your Firebase Firestore cloud database by signing in below.
+          LocalShop AI operates on an offline-first, cloud-capable SaaS pipeline. Discover business leads instantly using our local smart simulator, or synchronize directly with Google Places and your Firebase Firestore cloud database by signing in below.
         </p>
       </div>
 
@@ -235,7 +235,7 @@ export default function ConnectionsPanel({
               <div className="flex justify-between items-center py-2 border-b dark:border-slate-900">
                 <span className="text-slate-400">Places Active Driver</span>
                 <span className="font-semibold text-slate-700 dark:text-slate-350">
-                  {googleMapsStatus.hasKey ? '✓ Official Places JS' : 'LeadMine Smart Simulator'}
+                  {googleMapsStatus.hasKey ? '✓ Official Places JS' : 'LocalShop Smart Simulator'}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b dark:border-slate-900">

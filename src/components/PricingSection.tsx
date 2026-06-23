@@ -274,7 +274,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
                 <h3 className="text-xl font-bold flex items-center gap-1">
                   <span>Pay with Stripe</span>
                 </h3>
-                <p className="text-xs text-indigo-100 font-medium">To activate LeadMine {checkoutTier} Plan subscription</p>
+                <p className="text-xs text-indigo-100 font-medium">To activate LocalShop {checkoutTier} Plan subscription</p>
               </div>
               
               <button
@@ -304,7 +304,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
                   <div>
                     <h4 className="text-base font-black text-slate-950 dark:text-slate-50">Subscription Approved!</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs font-semibold">
-                      Your LeadMine profile has been successfully upgraded to **{checkoutTier}**. Your quota is updated!
+                      Your LocalShop profile has been successfully upgraded to **{checkoutTier}**. Your quota is updated!
                     </p>
                   </div>
                 </div>

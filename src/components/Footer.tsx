@@ -28,7 +28,7 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
                 <Sparkles className="w-4 h-4" />
               </div>
               <span className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-50">
-                LeadMine <span className="text-indigo-600 dark:text-indigo-400">AI</span>
+                LocalShop <span className="text-indigo-600 dark:text-indigo-400">AI</span>
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
@@ -92,7 +92,7 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
 
         {/* Bottom Bar */}
         <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-150 dark:border-slate-850/60 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-slate-450 dark:text-slate-500 font-semibold">
-          <p>© {currentYear} LeadMine AI. All rights registered globally.</p>
+          <p>© {currentYear} LocalShop AI. All rights registered globally.</p>
           <div className="flex items-center space-x-1">
             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse mr-1" />
             <span>App Instance: Active Platform Hub</span>
@@ -147,7 +147,7 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
 
                   <div className="text-xs text-slate-600 dark:text-slate-350 space-y-3.5 leading-relaxed font-semibold">
                     <p className="font-medium">
-                      At <strong>LeadMine AI</strong>, we prioritize structural data safety. This Privacy Policy clarifies how we index, locate, and coordinate geographic business records displayed on client dashboards.
+                      At <strong>LocalShop AI</strong>, we prioritize structural data safety. This Privacy Policy clarifies how we index, locate, and coordinate geographic business records displayed on client dashboards.
                     </p>
                     
                     <div className="space-y-1">
@@ -189,7 +189,7 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
 
                   <div className="text-xs text-slate-600 dark:text-slate-350 space-y-3.5 leading-relaxed font-semibold">
                     <p className="font-medium">
-                      Welcome to LeadMine AI. By using our website scanners, visualisers, pitch generators, and pipeline organization dashboards, you consent strictly to the following binding parameters.
+                      Welcome to LocalShop AI. By using our website scanners, visualisers, pitch generators, and pipeline organization dashboards, you consent strictly to the following binding parameters.
                     </p>
 
                     <div className="space-y-1">
@@ -224,14 +224,14 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
                       <Info className="w-5 h-5" />
                     </span>
                     <div>
-                      <h3 className="text-base font-black text-slate-900 dark:text-slate-50">About LeadMine AI</h3>
+                      <h3 className="text-base font-black text-slate-900 dark:text-slate-50">About LocalShop AI</h3>
                       <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Our vision and team</p>
                     </div>
                   </div>
 
                   <div className="text-xs text-slate-600 dark:text-slate-350 space-y-4 leading-relaxed font-semibold">
                     <p className="font-medium">
-                      At <strong>LeadMine AI</strong>, we believe local brick-and-mortar storefronts are the backbone of vibrant communities — but too many are losing customers because of poor online discoverability, absence of modern websites, or outdated reviews.
+                      At <strong>LocalShop AI</strong>, we believe local brick-and-mortar storefronts are the backbone of vibrant communities — but too many are losing customers because of poor online discoverability, absence of modern websites, or outdated reviews.
                     </p>
 
                     <p className="font-medium">

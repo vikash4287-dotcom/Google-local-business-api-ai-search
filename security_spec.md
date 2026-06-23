@@ -1,6 +1,6 @@
-# Security Specification: LeadMine AI CRM Security Model
+# Security Specification: LocalShop AI CRM Security Model
 
-This document outlines the security architecture and test payloads for the LeadMine AI database, enforcing high-integrity attribute-based access control.
+This document outlines the security architecture and test payloads for the LocalShop AI database, enforcing high-integrity attribute-based access control.
 
 ## 1. Data Invariants
 *   **Privacy Isolation**: User profile records contain potentially sensitive info (e.g., email), and list queries on search history or saved leads MUST check owner identifiers. No user can read another user's leads or query history.

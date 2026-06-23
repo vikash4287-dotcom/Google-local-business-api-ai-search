@@ -681,7 +681,7 @@ export default function BusinessModal({
         {/* Footer controls: Save / Dismiss */}
         <div className="flex items-center justify-between p-6 border-t border-slate-100 bg-slate-55 dark:border-slate-850 dark:bg-slate-950/30 gap-3">
           <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider hidden sm:block">
-            LEADMINE CRM PLANNERS
+            LOCALSHOP CRM PLANNERS
           </p>
           <div className="flex items-center space-x-2.5 w-full sm:w-auto">
             <button
