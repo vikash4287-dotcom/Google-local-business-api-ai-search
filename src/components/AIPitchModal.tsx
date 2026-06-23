@@ -370,8 +370,8 @@ export default function AIPitchModal({ lead, onClose }: AIPitchModalProps) {
           {/* Right Frame: Render Outreach templates workspace with beautiful bento tab triggers */}
           <div className="lg:col-span-8 flex flex-col md:flex-row h-full min-h-0 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-850">
             
-            {/* Left side checklist tabs of 5 Outreach materials */}
-            <div className="w-full md:w-56 p-4 space-y-2 bg-slate-50/50 dark:bg-slate-950/45 shrink-0 overflow-y-auto">
+            {/* Desktop side checklist tabs of 5 Outreach materials */}
+            <div className="hidden md:block w-56 p-4 space-y-2 bg-slate-50/50 dark:bg-slate-950/45 shrink-0 overflow-y-auto border-r border-slate-100 dark:border-slate-900">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block px-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
                 Touchpoints
               </span>
@@ -460,6 +460,81 @@ export default function AIPitchModal({ lead, onClose }: AIPitchModalProps) {
                     <p className="text-xs truncate leading-none">Sales Pitch</p>
                     <span className="text-[9px] text-slate-400 font-semibold uppercase font-mono mt-1 block">Phone Script</span>
                   </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Touchpoints Swiper (Compact pill format to maximize vertical reading canvas) */}
+            <div className="block md:hidden w-full px-4 py-2.5 bg-slate-50/70 dark:bg-slate-950/45 shrink-0 overflow-x-auto border-b border-slate-100 dark:border-slate-850">
+              <div className="flex items-center space-x-2.5 w-max select-none">
+                {/* Cold Email */}
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('coldEmail'); setCopiedSubject(false); setCopiedBody(false); setCopiedAll(false); }}
+                  className={`px-3 py-1.5 rounded-full flex items-center space-x-1.5 transition-all text-xs font-bold border cursor-pointer ${
+                    activeTab === 'coldEmail'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/45 dark:border-emerald-800 dark:text-emerald-350'
+                      : 'border-transparent text-slate-500 bg-white/40 dark:bg-slate-900/40'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5 shrink-0" />
+                  <span>Cold Email</span>
+                </button>
+                
+                {/* LinkedIn */}
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('linkedInMessage'); setCopiedSubject(false); setCopiedBody(false); setCopiedAll(false); }}
+                  className={`px-3 py-1.5 rounded-full flex items-center space-x-1.5 transition-all text-xs font-bold border cursor-pointer ${
+                    activeTab === 'linkedInMessage'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/45 dark:border-emerald-800 dark:text-emerald-350'
+                      : 'border-transparent text-slate-500 bg-white/40 dark:bg-slate-900/40'
+                  }`}
+                >
+                  <Linkedin className="w-3.5 h-3.5 shrink-0" />
+                  <span>LinkedIn</span>
+                </button>
+
+                {/* WhatsApp */}
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('whatsAppMessage'); setCopiedSubject(false); setCopiedBody(false); setCopiedAll(false); }}
+                  className={`px-3 py-1.5 rounded-full flex items-center space-x-1.5 transition-all text-xs font-bold border cursor-pointer ${
+                    activeTab === 'whatsAppMessage'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/45 dark:border-emerald-800 dark:text-emerald-350'
+                      : 'border-transparent text-slate-500 bg-white/40 dark:bg-slate-900/40'
+                  }`}
+                >
+                  <MessageCircle className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                  <span>WhatsApp</span>
+                </button>
+
+                {/* Follow-up */}
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('followUpEmail'); setCopiedSubject(false); setCopiedBody(false); setCopiedAll(false); }}
+                  className={`px-3 py-1.5 rounded-full flex items-center space-x-1.5 transition-all text-xs font-bold border cursor-pointer ${
+                    activeTab === 'followUpEmail'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/45 dark:border-emerald-800 dark:text-emerald-350'
+                      : 'border-transparent text-slate-500 bg-white/40 dark:bg-slate-900/40'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  <span>Follow-Up</span>
+                </button>
+
+                {/* Sales Pitch */}
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('salesPitch'); setCopiedSubject(false); setCopiedBody(false); setCopiedAll(false); }}
+                  className={`px-3 py-1.5 rounded-full flex items-center space-x-1.5 transition-all text-xs font-bold border cursor-pointer ${
+                    activeTab === 'salesPitch'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/45 dark:border-emerald-800 dark:text-emerald-350'
+                      : 'border-transparent text-slate-500 bg-white/40 dark:bg-slate-900/40'
+                  }`}
+                >
+                  <PhoneCall className="w-3.5 h-3.5 shrink-0 animate-pulse text-emerald-500" />
+                  <span>Sales Pitch</span>
                 </button>
               </div>
             </div>
