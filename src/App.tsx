@@ -16,7 +16,7 @@ import {
   Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Business, SavedBusiness, SearchHistory, ActiveUser } from './types';
+import { Business, SavedBusiness, SearchHistory, ActiveUser, UserSubscription, SubscriptionTier } from './types';
 import Header from './components/Header';
 import ResultsTable from './components/ResultsTable';
 import SearchMap from './components/SearchMap';
@@ -30,6 +30,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 import SearchOverlay from './components/SearchOverlay';
 import PipelineStats from './components/PipelineStats';
 import SearchCategoryChart from './components/SearchCategoryChart';
+import FAQSection from './components/FAQSection';
+import PricingSection from './components/PricingSection';
+import UpgradeModal from './components/UpgradeModal';
 
 export default function App() {
   // Theme state (SaaS default is high-contrast light, with full dark mode support)
@@ -39,6 +42,14 @@ export default function App() {
   });
 
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
+
+  // Subscription Pricing & Quotas States
+  const [subscription, setSubscription] = useState<UserSubscription>({
+    tier: 'Free',
+    searchesToday: 0,
+    lastSearchDate: new Date().toISOString().split('T')[0]
+  });
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   // Navigation state
   const [activeTab, setActiveTab] = useState<'search' | 'saved'>('search');
@@ -240,11 +251,13 @@ export default function App() {
 
       const saved = await databaseService.getSavedBusinesses();
       const history = await databaseService.getSearchHistory();
+      const sub = await databaseService.getSubscription();
       
       if (active) {
         setUser(activeUser);
         setSavedLeads(saved);
         setSearchHistory(history);
+        setSubscription(sub);
         setFirebaseConnected(!!firebaseUser);
       }
     });
@@ -291,12 +304,38 @@ export default function App() {
     setIsLoading(true);
     setErrorMessage(null);
 
+    // Limit check if not initial seed load
+    let currentSub = subscription;
+    if (!isInitialSeed) {
+      try {
+        currentSub = await databaseService.getSubscription();
+        setSubscription(currentSub);
+        if (currentSub.tier !== 'Agency') {
+          const quotaLimit = currentSub.tier === 'Free' ? 5 : 20;
+          if (currentSub.searchesToday >= quotaLimit) {
+            setIsLoading(false);
+            setIsUpgradeModalOpen(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Failed checking subscription limits inside search execution:", err);
+      }
+    }
+
     const activeFilters = {
       minRating: Number(minRating),
       maxRating: Number(maxRating),
       minReviews: Number(minReviews),
       maxReviews: Number(maxReviews),
       hasWebsite
+    };
+
+    // Helper to slice leads array to respect current subscription plan constraints
+    const sliceLeads = (leadsArray: Business[], tier: SubscriptionTier) => {
+      if (tier === 'Free') return leadsArray.slice(0, 10);
+      if (tier === 'Starter') return leadsArray.slice(0, 20);
+      return leadsArray; // Agency gets everything
     };
 
     try {
@@ -338,15 +377,19 @@ export default function App() {
               return matchesRating && matchesReviews && matchesWeb;
             });
 
-            setLeads(filtered);
+            const sliced = sliceLeads(filtered, currentSub.tier);
+            setLeads(sliced);
             setLastCitySearched(targetCity);
             setIsLoading(false);
 
             if (!isInitialSeed) {
+              const updatedSub = await databaseService.incrementSearchCount();
+              setSubscription(updatedSub);
+
               const hEntry = await databaseService.addSearchHistory({
                 city: targetCity,
                 category,
-                resultsCount: filtered.length,
+                resultsCount: sliced.length,
                 filters: activeFilters
               });
               setSearchHistory(prev => [hEntry, ...prev]);
@@ -360,15 +403,19 @@ export default function App() {
         // Simulates realistic delays
         await new Promise(resolve => setTimeout(resolve, 800));
         const mockResults = generateMockLeads(targetCity, category, activeFilters);
-        setLeads(mockResults);
+        const sliced = sliceLeads(mockResults, currentSub.tier);
+        setLeads(sliced);
         setLastCitySearched(targetCity);
         setIsLoading(false);
 
         if (!isInitialSeed) {
+          const updatedSub = await databaseService.incrementSearchCount();
+          setSubscription(updatedSub);
+
           const hEntry = await databaseService.addSearchHistory({
             city: targetCity,
             category,
-            resultsCount: mockResults.length,
+            resultsCount: sliced.length,
             filters: activeFilters
           });
           setSearchHistory(prev => [hEntry, ...prev]);
@@ -378,7 +425,8 @@ export default function App() {
       console.error('Unified lead discovery error:', err);
       // Fallback cleanly
       const mockResults = generateMockLeads(targetCity, category, activeFilters);
-      setLeads(mockResults);
+      const sliced = sliceLeads(mockResults, currentSub.tier);
+      setLeads(sliced);
       setLastCitySearched(targetCity);
       setIsLoading(false);
       setErrorMessage(err.message || 'Connecting to Google Places API failed, loaded LeadMine local simulator results instead.');
@@ -480,12 +528,12 @@ export default function App() {
                 className="space-y-6"
               >
                 {/* Hero block */}
-                <div className="space-y-1.5 py-2">
-                  <h1 className="text-2xl font-black font-sans md:text-3.5xl tracking-tight text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                <div className="space-y-3 py-10 md:py-14 text-center max-w-3xl mx-auto">
+                  <h1 className="text-2xl font-black font-sans md:text-3.5xl tracking-tight text-slate-900 dark:text-slate-50 flex items-center justify-center gap-2">
                     <span>Find Businesses Losing Customers Online</span>
                     <Sparkles className="w-5.5 h-5.5 text-indigo-500 animate-pulse hidden sm:inline-block" />
                   </h1>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                     Discover local businesses with poor online presence, outdated metrics, or zero website and turn them into high-paying web and marketing clients.
                   </p>
                 </div>
@@ -639,6 +687,29 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Daily Search Quota Progress indicator */}
+                  {subscription.tier !== 'Agency' && (
+                    <div className="mt-4 pt-3 border-t border-dashed border-slate-150 dark:border-slate-850 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                        <span className="font-extrabold uppercase text-[10px] tracking-wider text-slate-450">Active Quota:</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-205">
+                          {subscription.searchesToday} of {subscription.tier === 'Free' ? 5 : 20} searches used today (Plan: {subscription.tier})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById('pricing-section');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="text-indigo-600 dark:text-indigo-400 font-extrabold hover:underline text-left cursor-pointer inline-flex items-center space-x-1"
+                      >
+                        <span>🚀 Need more? Upgrade your plan</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* Expanded Filters panel */}
                   {isFiltersOpen && (
@@ -977,6 +1048,8 @@ export default function App() {
             )}
 
           </AnimatePresence>
+          <PricingSection subscription={subscription} onSubscriptionUpdate={setSubscription} />
+          <FAQSection />
           <Footer 
             activeModal={activeFooterModal}
             setActiveModal={setActiveFooterModal}
@@ -1008,6 +1081,14 @@ export default function App() {
         onSelectLead={(lead) => {
           setSelectedLead(lead);
         }}
+      />
+
+      {/* Freemium Upgrade Quota Dialog */}
+      <UpgradeModal 
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        subscription={subscription}
+        onSubscriptionUpdate={setSubscription}
       />
     </div>
   );

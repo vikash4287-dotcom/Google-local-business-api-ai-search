@@ -10,7 +10,7 @@ import {
   orderBy, 
   updateDoc 
 } from 'firebase/firestore';
-import { Business, SavedBusiness, SearchHistory, ActiveUser, WebsiteAudit, Proposal, ServicePackagesDraft, OutreachToolkit } from '../types';
+import { Business, SavedBusiness, SearchHistory, ActiveUser, WebsiteAudit, Proposal, ServicePackagesDraft, OutreachToolkit, UserSubscription, SubscriptionTier } from '../types';
 
 // Keys for LocalStorage fallbacks
 const STORAGE_PREFIX = 'leadmine_ai_';
@@ -622,6 +622,98 @@ export const databaseService = {
     }
     localStorage.setItem(`${STORAGE_PREFIX}outreach_toolkits`, JSON.stringify(updated));
     return toolkit;
+  },
+
+  // ----------------------------------------------------
+  // Subscription & Pricing Operations
+  // ----------------------------------------------------
+  async getSubscription(): Promise<UserSubscription> {
+    const user = auth.currentUser;
+    const today = new Date().toISOString().split('T')[0];
+    const defaultSub: UserSubscription = {
+      tier: 'Free',
+      searchesToday: 0,
+      lastSearchDate: today
+    };
+
+    if (user) {
+      try {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const d = docSnap.data();
+          if (d.subscription) {
+            const s = d.subscription as UserSubscription;
+            if (s.lastSearchDate !== today) {
+              s.searchesToday = 0;
+              s.lastSearchDate = today;
+              await updateDoc(docRef, { subscription: s });
+            }
+            return s;
+          }
+        }
+        // Save default in background or return
+        await setDoc(docRef, { subscription: defaultSub }, { merge: true });
+        return defaultSub;
+      } catch (err) {
+        console.warn("Firestore subscription fetch fail, falling back to local:", err);
+      }
+    }
+
+    // Local fallback
+    const localSub = localStorage.getItem(`${STORAGE_PREFIX}subscription`);
+    if (localSub) {
+      try {
+        const s = JSON.parse(localSub) as UserSubscription;
+        if (s.lastSearchDate !== today) {
+          s.searchesToday = 0;
+          s.lastSearchDate = today;
+          localStorage.setItem(`${STORAGE_PREFIX}subscription`, JSON.stringify(s));
+        }
+        return s;
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    localStorage.setItem(`${STORAGE_PREFIX}subscription`, JSON.stringify(defaultSub));
+    return defaultSub;
+  },
+
+  async updateSubscription(tier: SubscriptionTier): Promise<UserSubscription> {
+    const user = auth.currentUser;
+    const current = await this.getSubscription();
+    current.tier = tier;
+
+    if (user) {
+      try {
+        const docRef = doc(db, 'users', user.uid);
+        await setDoc(docRef, { subscription: current }, { merge: true });
+      } catch (err) {
+        console.error("Failed to update Firestore subscription:", err);
+      }
+    }
+
+    localStorage.setItem(`${STORAGE_PREFIX}subscription`, JSON.stringify(current));
+    return current;
+  },
+
+  async incrementSearchCount(): Promise<UserSubscription> {
+    const current = await this.getSubscription();
+    current.searchesToday += 1;
+    const user = auth.currentUser;
+
+    if (user) {
+      try {
+        const docRef = doc(db, 'users', user.uid);
+        await setDoc(docRef, { subscription: current }, { merge: true });
+      } catch (err) {
+        console.error("Failed to increment search count:", err);
+      }
+    }
+
+    localStorage.setItem(`${STORAGE_PREFIX}subscription`, JSON.stringify(current));
+    return current;
   },
 
   // ----------------------------------------------------

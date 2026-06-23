@@ -121,6 +121,19 @@ export default function Header({
         </button>
       )}
 
+      {/* Pricing and navigation links */}
+      <button
+        onClick={() => {
+          const el = document.getElementById('pricing-section');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+        className="text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-all mx-4 cursor-pointer select-none hidden md:inline-block"
+      >
+        Pricing Plans
+      </button>
+
       {/* Segmented top navigation - placed towards the right side */}
       <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-150/10 dark:border-slate-800/20 ml-auto mr-3">
         <button

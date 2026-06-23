@@ -104,5 +104,14 @@ export interface OutreachToolkit {
   generatedAt: string;
 }
 
+export type SubscriptionTier = 'Free' | 'Starter' | 'Agency';
+
+export interface UserSubscription {
+  tier: SubscriptionTier;
+  searchesToday: number;
+  lastSearchDate: string; // YYYY-MM-DD
+}
+
+
 
 
