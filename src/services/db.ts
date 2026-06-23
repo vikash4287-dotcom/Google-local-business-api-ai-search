@@ -10,7 +10,7 @@ import {
   orderBy, 
   updateDoc 
 } from 'firebase/firestore';
-import { Business, SavedBusiness, SearchHistory, ActiveUser } from '../types';
+import { Business, SavedBusiness, SearchHistory, ActiveUser, WebsiteAudit, Proposal, ServicePackagesDraft, OutreachToolkit } from '../types';
 
 // Keys for LocalStorage fallbacks
 const STORAGE_PREFIX = 'leadmine_ai_';
@@ -324,6 +324,304 @@ export const databaseService = {
     const saved = await this.getSavedBusinesses();
     const updated = saved.filter(b => b.id !== id);
     localStorage.setItem(LOCAL_KEYS.SAVED, JSON.stringify(updated));
+  },
+
+  // ----------------------------------------------------
+  // Website Audit Operations
+  // ----------------------------------------------------
+  async getWebsiteAudits(): Promise<WebsiteAudit[]> {
+    const user = auth.currentUser;
+    if (user) {
+      const pathStr = `users/${user.uid}/website_audits`;
+      try {
+        const q = query(collection(db, pathStr), orderBy('auditedAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(docSnap => {
+          const d = docSnap.data();
+          return {
+            id: docSnap.id,
+            businessId: d.businessId || '',
+            businessName: d.businessName || '',
+            website: d.website || '',
+            score: Number(d.score || 0),
+            strengths: d.strengths || [],
+            weaknesses: d.weaknesses || [],
+            recommendedImprovements: d.recommendedImprovements || [],
+            potentialServicesToSell: d.potentialServicesToSell || [],
+            estimatedProjectValue: d.estimatedProjectValue || '',
+            auditedAt: d.auditedAt
+          };
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, pathStr);
+      }
+    }
+
+    // Local fallback
+    const localAudits = localStorage.getItem(`${STORAGE_PREFIX}website_audits`);
+    if (localAudits) {
+      try {
+        return JSON.parse(localAudits);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  },
+
+  async getWebsiteAudit(businessId: string): Promise<WebsiteAudit | null> {
+    const audits = await this.getWebsiteAudits();
+    return audits.find(a => a.businessId === businessId) || null;
+  },
+
+  async saveWebsiteAudit(audit: WebsiteAudit): Promise<WebsiteAudit> {
+    const user = auth.currentUser;
+    if (user) {
+      const pathStr = `users/${user.uid}/website_audits`;
+      try {
+        const docRef = doc(db, pathStr, audit.id);
+        await setDoc(docRef, { ...audit });
+        return audit;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `${pathStr}/${audit.id}`);
+      }
+    }
+
+    // Save locally
+    const audits = await this.getWebsiteAudits();
+    const idx = audits.findIndex(a => a.id === audit.id || a.businessId === audit.businessId);
+    let updated: WebsiteAudit[];
+    if (idx !== -1) {
+      audits[idx] = audit;
+      updated = [...audits];
+    } else {
+      updated = [audit, ...audits];
+    }
+    localStorage.setItem(`${STORAGE_PREFIX}website_audits`, JSON.stringify(updated));
+    return audit;
+  },
+
+  // ----------------------------------------------------
+  // Proposal Operations
+  // ----------------------------------------------------
+  async getProposals(): Promise<Proposal[]> {
+    const user = auth.currentUser;
+    if (user) {
+      const pathStr = `users/${user.uid}/proposals`;
+      try {
+        const q = query(collection(db, pathStr), orderBy('generatedAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(docSnap => {
+          const d = docSnap.data();
+          return {
+            id: docSnap.id,
+            businessId: d.businessId || '',
+            businessName: d.businessName || '',
+            website: d.website || '',
+            executiveSummary: d.executiveSummary || '',
+            businessProblems: d.businessProblems || [],
+            websiteIssues: d.websiteIssues || [],
+            reviewAndReputationIssues: d.reviewAndReputationIssues || [],
+            recommendedServices: d.recommendedServices || [],
+            expectedResults: d.expectedResults || [],
+            pricingRecommendations: d.pricingRecommendations || '',
+            timeline: d.timeline || '',
+            nextSteps: d.nextSteps || [],
+            generatedAt: d.generatedAt
+          };
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, pathStr);
+      }
+    }
+
+    // Local fallback
+    const localProposals = localStorage.getItem(`${STORAGE_PREFIX}proposals`);
+    if (localProposals) {
+      try {
+        return JSON.parse(localProposals);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  },
+
+  async getProposal(businessId: string): Promise<Proposal | null> {
+    const proposals = await this.getProposals();
+    return proposals.find(p => p.businessId === businessId) || null;
+  },
+
+  async saveProposal(proposal: Proposal): Promise<Proposal> {
+    const user = auth.currentUser;
+    if (user) {
+      const pathStr = `users/${user.uid}/proposals`;
+      try {
+        const docRef = doc(db, pathStr, proposal.id);
+        await setDoc(docRef, { ...proposal });
+        return proposal;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `${pathStr}/${proposal.id}`);
+      }
+    }
+
+    // Save locally
+    const proposals = await this.getProposals();
+    const idx = proposals.findIndex(p => p.id === proposal.id || p.businessId === proposal.businessId);
+    let updated: Proposal[];
+    if (idx !== -1) {
+      proposals[idx] = proposal;
+      updated = [...proposals];
+    } else {
+      updated = [proposal, ...proposals];
+    }
+    localStorage.setItem(`${STORAGE_PREFIX}proposals`, JSON.stringify(updated));
+    return proposal;
+  },
+
+  // ----------------------------------------------------
+  // Service Packages Operations
+  // ----------------------------------------------------
+  async getServicePackagesDrafts(): Promise<ServicePackagesDraft[]> {
+    const user = auth.currentUser;
+    if (user) {
+      const pathStr = `users/${user.uid}/service_packages`;
+      try {
+        const q = query(collection(db, pathStr), orderBy('generatedAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(docSnap => {
+          const d = docSnap.data();
+          return {
+            id: docSnap.id,
+            businessId: d.businessId || '',
+            businessName: d.businessName || '',
+            starter: d.starter || { name: 'Starter', services: [], estimatedPricing: '', expectedOutcomes: [] },
+            professional: d.professional || { name: 'Professional', services: [], estimatedPricing: '', expectedOutcomes: [] },
+            premium: d.premium || { name: 'Premium', services: [], estimatedPricing: '', expectedOutcomes: [] },
+            recommendedPackage: d.recommendedPackage || 'Professional',
+            generatedAt: d.generatedAt
+          };
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, pathStr);
+      }
+    }
+
+    // Local fallback
+    const localDrafts = localStorage.getItem(`${STORAGE_PREFIX}service_packages`);
+    if (localDrafts) {
+      try {
+        return JSON.parse(localDrafts);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  },
+
+  async getServicePackagesDraft(businessId: string): Promise<ServicePackagesDraft | null> {
+    const drafts = await this.getServicePackagesDrafts();
+    return drafts.find(d => d.businessId === businessId) || null;
+  },
+
+  async saveServicePackagesDraft(draft: ServicePackagesDraft): Promise<ServicePackagesDraft> {
+    const user = auth.currentUser;
+    if (user) {
+      const pathStr = `users/${user.uid}/service_packages`;
+      try {
+        const docRef = doc(db, pathStr, draft.id);
+        await setDoc(docRef, { ...draft });
+        return draft;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `${pathStr}/${draft.id}`);
+      }
+    }
+
+    // Save locally
+    const drafts = await this.getServicePackagesDrafts();
+    const idx = drafts.findIndex(d => d.id === draft.id || d.businessId === draft.businessId);
+    let updated: ServicePackagesDraft[];
+    if (idx !== -1) {
+      drafts[idx] = draft;
+      updated = [...drafts];
+    } else {
+      updated = [draft, ...drafts];
+    }
+    localStorage.setItem(`${STORAGE_PREFIX}service_packages`, JSON.stringify(updated));
+    return draft;
+  },
+
+  // ----------------------------------------------------
+  // Outreach Toolkits Operations
+  // ----------------------------------------------------
+  async getOutreachToolkits(): Promise<OutreachToolkit[]> {
+    const user = auth.currentUser;
+    if (user) {
+      const pathStr = `users/${user.uid}/outreach_toolkits`;
+      try {
+        const q = query(collection(db, pathStr), orderBy('generatedAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(docSnap => {
+          const d = docSnap.data();
+          return {
+            id: docSnap.id,
+            businessId: d.businessId || '',
+            businessName: d.businessName || '',
+            coldEmail: d.coldEmail || { subject: '', body: '' },
+            linkedInMessage: d.linkedInMessage || { body: '' },
+            whatsAppMessage: d.whatsAppMessage || { body: '' },
+            followUpEmail: d.followUpEmail || { subject: '', body: '' },
+            salesPitch: d.salesPitch || { body: '' },
+            generatedAt: d.generatedAt
+          };
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, pathStr);
+      }
+    }
+
+    // Local fallback
+    const localToolkits = localStorage.getItem(`${STORAGE_PREFIX}outreach_toolkits`);
+    if (localToolkits) {
+      try {
+        return JSON.parse(localToolkits);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  },
+
+  async getOutreachToolkit(businessId: string): Promise<OutreachToolkit | null> {
+    const toolkits = await this.getOutreachToolkits();
+    return toolkits.find(t => t.businessId === businessId) || null;
+  },
+
+  async saveOutreachToolkit(toolkit: OutreachToolkit): Promise<OutreachToolkit> {
+    const user = auth.currentUser;
+    if (user) {
+      const pathStr = `users/${user.uid}/outreach_toolkits`;
+      try {
+        const docRef = doc(db, pathStr, toolkit.id);
+        await setDoc(docRef, { ...toolkit });
+        return toolkit;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `${pathStr}/${toolkit.id}`);
+      }
+    }
+
+    // Save locally
+    const toolkits = await this.getOutreachToolkits();
+    const idx = toolkits.findIndex(t => t.id === toolkit.id || t.businessId === toolkit.businessId);
+    let updated: OutreachToolkit[];
+    if (idx !== -1) {
+      toolkits[idx] = toolkit;
+      updated = [...toolkits];
+    } else {
+      updated = [toolkit, ...toolkits];
+    }
+    localStorage.setItem(`${STORAGE_PREFIX}outreach_toolkits`, JSON.stringify(updated));
+    return toolkit;
   },
 
   // ----------------------------------------------------

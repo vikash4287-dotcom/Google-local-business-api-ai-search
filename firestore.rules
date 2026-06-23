@@ -105,5 +105,25 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidId(historyId) && isValidSearchHistory(incoming());
       allow delete: if isOwner(userId) && isValidId(historyId);
     }
+
+    // Rules for User's Website Audits
+    match /users/{userId}/website_audits/{auditId} {
+      allow get, list, create, update, delete: if isOwner(userId) && isValidId(auditId);
+    }
+
+    // Rules for User's Proposals
+    match /users/{userId}/proposals/{proposalId} {
+      allow get, list, create, update, delete: if isOwner(userId) && isValidId(proposalId);
+    }
+
+    // Rules for User's Service Packages
+    match /users/{userId}/service_packages/{packageId} {
+      allow get, list, create, update, delete: if isOwner(userId) && isValidId(packageId);
+    }
+
+    // Rules for User's Outreach Toolkits
+    match /users/{userId}/outreach_toolkits/{toolkitId} {
+      allow get, list, create, update, delete: if isOwner(userId) && isValidId(toolkitId);
+    }
   }
 }
