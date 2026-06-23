@@ -1,9 +1,9 @@
 import React from 'react';
-import { Search, Bookmark, Database, Menu, X, ShieldAlert, Sparkles } from 'lucide-react';
+import { Search, Bookmark, Database, Menu, X, ShieldAlert, Sparkles, Info, HelpCircle } from 'lucide-react';
 
 interface SidebarProps {
-  activeTab: 'search' | 'saved' | 'connections';
-  setActiveTab: (tab: 'search' | 'saved' | 'connections') => void;
+  activeTab: 'search' | 'saved';
+  setActiveTab: (tab: 'search' | 'saved') => void;
   savedCount: number;
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
@@ -30,12 +30,6 @@ export default function Sidebar({
       label: 'Saved Leads',
       icon: Bookmark,
       badge: savedCount > 0 ? savedCount : null
-    },
-    {
-      id: 'connections' as const,
-      label: 'Integrations & Sync',
-      icon: Database,
-      badge: !supabaseConfigured ? 'Off' : 'Cloud'
     }
   ];
 
@@ -80,62 +74,45 @@ export default function Sidebar({
 
         {/* Navigation Items */}
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setMobileOpen(false);
-                }}
-                className={`
-                  flex items-center justify-between w-full px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
-                  ${isActive 
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' 
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100'
-                  }
-                `}
-              >
-                <div className="flex items-center space-x-3">
-                  <Icon className={`w-4.5 h-4.5 transition-transform duration-200 group-hover:scale-105 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600'}`} />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge !== null && (
-                  <span className={`
-                    px-2 py-0.5 text-xs font-semibold rounded-full tracking-wide
-                    ${isActive
-                      ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200'
-                      : item.id === 'connections' && !supabaseConfigured
-                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200'
-                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+          <div className="space-y-1.5">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setMobileOpen(false);
+                  }}
+                  className={`
+                    flex items-center justify-between w-full px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
+                    ${isActive 
+                      ? 'bg-indigo-55 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' 
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100'
                     }
-                  `}>
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Database Mode Status */}
-        <div className="p-4 mx-4 mb-6 rounded-xl border border-slate-150 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/50">
-          <div className="flex items-start space-x-2.5">
-            <div className={`mt-0.5 w-2 h-2 rounded-full animate-pulse ${supabaseConfigured ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-            <div>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {supabaseConfigured ? 'Firebase Cloud Sync' : 'Offline Sandbox Mode'}
-              </p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
-                {supabaseConfigured 
-                  ? 'All saved leads and history are synchronized securely with your live Firestore project.' 
-                  : 'Running locally. Saving data in browser. Authenticate with Google to back up.'}
-              </p>
-            </div>
+                  `}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Icon className={`w-4.5 h-4.5 transition-transform duration-200 group-hover:scale-105 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600'}`} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge !== null && (
+                    <span className={`
+                      px-2 py-0.5 text-xs font-semibold rounded-full tracking-wide
+                      ${isActive
+                        ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200'
+                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                      }
+                    `}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </nav>
 
         {/* Footer info containing workspace safety seal */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800">

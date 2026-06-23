@@ -12,16 +12,16 @@ import {
   Trash2,
   TrendingDown,
   Building2,
-  AlertCircle
+  AlertCircle,
+  Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Business, SavedBusiness, SearchHistory, ActiveUser } from './types';
-import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ResultsTable from './components/ResultsTable';
 import SearchMap from './components/SearchMap';
 import BusinessModal from './components/BusinessModal';
-import ConnectionsPanel from './components/ConnectionsPanel';
+import Footer from './components/Footer';
 import { generateMockLeads } from './services/leadsMock';
 import { USA_STATES_AND_CITIES } from './services/usaGeographics';
 import { databaseService } from './services/db';
@@ -29,6 +29,7 @@ import { auth } from './services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import SearchOverlay from './components/SearchOverlay';
 import PipelineStats from './components/PipelineStats';
+import SearchCategoryChart from './components/SearchCategoryChart';
 
 export default function App() {
   // Theme state (SaaS default is high-contrast light, with full dark mode support)
@@ -40,7 +41,8 @@ export default function App() {
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
 
   // Navigation state
-  const [activeTab, setActiveTab] = useState<'search' | 'saved' | 'connections'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'saved'>('search');
+  const [activeFooterModal, setActiveFooterModal] = useState<'privacy' | 'terms' | 'about' | 'info' | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Core CRM data structures states
@@ -450,17 +452,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
-      {/* Sidebar Navigation */}
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        savedCount={savedLeads.length}
-        mobileOpen={mobileOpen}
-        setMobileOpen={setMobileOpen}
-        supabaseConfigured={firebaseConnected}
-      />
-
-      {/* Main Core Frame */}
+      {/* Main Core Frame - Uses full screen seamlessly */}
       <div className="flex flex-col flex-1 min-w-0">
         <Header 
           user={user}
@@ -469,8 +461,11 @@ export default function App() {
           supabaseConfigured={firebaseConnected}
           googleMapsConfigured={googleMapsConfigured}
           setMobileOpen={setMobileOpen}
-          onOpenConnections={() => setActiveTab('connections')}
+          onOpenConnections={() => setActiveFooterModal('info')}
           onOpenSearch={() => setIsSearchOverlayOpen(true)}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          savedCount={savedLeads.length}
         />
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
@@ -779,43 +774,51 @@ export default function App() {
                   />
                 )}
 
-                {/* Bottom section: Recent Searches History logs */}
+                {/* Bottom analytics & logs grid */}
                 {searchHistory.length > 0 && (
-                  <div className="bg-white border rounded-2xl p-6 dark:bg-slate-950 dark:border-slate-850">
-                    <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-850 gap-2.5">
-                      <div className="flex items-center space-x-2">
-                        <History className="w-5 h-5 text-slate-400" />
-                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Recent Search Discoveries History</h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Left: Recent Searches History logs */}
+                    <div className="lg:col-span-6 bg-white border rounded-2xl p-6 dark:bg-slate-950 dark:border-slate-850">
+                      <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-850 gap-2.5">
+                        <div className="flex items-center space-x-2">
+                          <History className="w-5 h-5 text-slate-400" />
+                          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Recent Search Discoveries History</h4>
+                        </div>
+                        <button
+                          onClick={handleClearHistory}
+                          className="text-xs text-slate-400 hover:text-rose-600 transition-colors uppercase font-bold tracking-wider cursor-pointer"
+                        >
+                          Clear logs
+                        </button>
                       </div>
-                      <button
-                        onClick={handleClearHistory}
-                        className="text-xs text-slate-400 hover:text-rose-600 transition-colors uppercase font-bold tracking-wider cursor-pointer"
-                      >
-                        Clear logs
-                      </button>
+
+                      <div className="divide-y divide-slate-100 dark:divide-slate-850 text-xs">
+                        {searchHistory.slice(0, 5).map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => applyHistoryItem(item)}
+                            className="flex items-center justify-between py-3 hover:bg-slate-50/40 dark:hover:bg-slate-900/10 px-2 rounded-lg cursor-pointer transition-colors group"
+                          >
+                            <div className="flex items-center space-x-3 truncate">
+                              <span className="font-bold text-slate-800 dark:text-slate-200">{item.category}</span>
+                              <span className="text-slate-400 font-semibold">•</span>
+                              <span className="text-slate-500 font-medium dark:text-slate-400">{item.city}</span>
+                              <span className="hidden text-[10px] text-slate-400 font-mono sm:inline">
+                                (Min rating: {item.filters?.minRating || 1.0} | Website: {item.filters?.hasWebsite || 'any'})
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-bold shrink-0">
+                              <span>{item.resultsCount} leads mapped</span>
+                              <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="divide-y divide-slate-100 dark:divide-slate-850 text-xs">
-                      {searchHistory.slice(0, 5).map((item) => (
-                        <div
-                          key={item.id}
-                          onClick={() => applyHistoryItem(item)}
-                          className="flex items-center justify-between py-3 hover:bg-slate-50/40 dark:hover:bg-slate-900/10 px-2 rounded-lg cursor-pointer transition-colors group"
-                        >
-                          <div className="flex items-center space-x-3 truncate">
-                            <span className="font-bold text-slate-800 dark:text-slate-200">{item.category}</span>
-                            <span className="text-slate-400 font-semibold">•</span>
-                            <span className="text-slate-500 font-medium dark:text-slate-400">{item.city}</span>
-                            <span className="hidden text-[10px] text-slate-400 font-mono sm:inline">
-                              (Min rating: {item.filters?.minRating || 1.0} | Website: {item.filters?.hasWebsite || 'any'})
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-bold shrink-0">
-                            <span>{item.resultsCount} leads mapped</span>
-                            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                          </div>
-                        </div>
-                      ))}
+                    {/* Right: Data Visualization Category Distribution Donut Chart */}
+                    <div className="lg:col-span-6 bg-white border rounded-2xl p-6 dark:bg-slate-950 dark:border-slate-850 flex flex-col">
+                      <SearchCategoryChart searchHistory={searchHistory} />
                     </div>
                   </div>
                 )}
@@ -973,23 +976,16 @@ export default function App() {
               </motion.div>
             )}
 
-            {activeTab === 'connections' && (
-              <motion.div
-                key="connections-tab"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ConnectionsPanel 
-                  googleMapsStatus={{
-                    hasKey: googleMapsConfigured,
-                    keyPlaceholder: MAPS_KEY
-                  }}
-                />
-              </motion.div>
-            )}
           </AnimatePresence>
+          <Footer 
+            activeModal={activeFooterModal}
+            setActiveModal={setActiveFooterModal}
+            googleMapsStatus={{
+              hasKey: googleMapsConfigured,
+              keyPlaceholder: MAPS_KEY
+            }}
+            firebaseConnected={firebaseConnected}
+          />
         </main>
       </div>
 
