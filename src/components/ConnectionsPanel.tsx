@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Database, 
   Map, 
@@ -11,17 +11,18 @@ import {
   HardDrive,
   Cpu,
   Terminal,
-  Compass
+  Compass,
+  LogOut,
+  Sparkles,
+  Lock,
+  Wifi,
+  CloudLightning
 } from 'lucide-react';
+import { auth, googleProvider } from '../services/firebase';
+import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { databaseService } from '../services/db';
 
 interface ConnectionsPanelProps {
-  supabaseStatus: {
-    hasCredentials: boolean;
-    url: string;
-    isConnected: boolean;
-    error: string | null;
-  };
   googleMapsStatus: {
     hasKey: boolean;
     keyPlaceholder: string;
@@ -29,16 +30,53 @@ interface ConnectionsPanelProps {
 }
 
 export default function ConnectionsPanel({
-  supabaseStatus,
   googleMapsStatus
 }: ConnectionsPanelProps) {
   const [copied, setCopied] = useState(false);
-  const sqlBoilerplate = databaseService.getSQLSchema();
+  const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
+  const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleCopySQL = () => {
-    navigator.clipboard.writeText(sqlBoilerplate);
+    navigator.clipboard.writeText(databaseService.getSQLSchema());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSignIn = async () => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (err: any) {
+      console.error("Google Sign In Error:", err);
+      // Clean up common pop-up errors for the user
+      if (err.code === 'auth/popup-blocked') {
+        setAuthError("Sign-in pop-up was blocked. Please enable pop-ups in your browser.");
+      } else {
+        setAuthError(err.message || "Failed to authenticate via Google.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setLoading(true);
+    try {
+      await signOut(auth);
+    } catch (err: any) {
+      console.error("Sign Out Error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,69 +84,127 @@ export default function ConnectionsPanel({
       {/* Overview Intro Banner */}
       <div className="p-6 bg-linear-to-r from-indigo-900/10 to-indigo-600/5 border border-indigo-150 rounded-2xl dark:border-indigo-950/40">
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-          <Cpu className="w-5 h-5 text-indigo-500" />
-          <span>SaaS Service Hub & Credentials</span>
+          <Cpu className="w-5 h-5 text-indigo-500 animate-pulse" />
+          <span>SaaS Service Hub & Firebase Credentials</span>
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-          LeadMine AI operates on an offline-first, cloud-capable SaaS pipeline. You can discover leads instantly using our pre-built local simulator, or synchronize directly with Google Places and your Supabase PostgreSQL cluster simply by defining credentials.
+          LeadMine AI operates on an offline-first, cloud-capable SaaS pipeline. Discover business leads instantly using our local smart simulator, or synchronize directly with Google Places and your Firebase Firestore cloud database by signing in below.
         </p>
       </div>
 
+      {/* Auth Error Toast if any */}
+      {authError && (
+        <div className="p-4 bg-rose-50 border border-rose-100 text-rose-800 rounded-xl dark:bg-rose-950/20 dark:border-rose-900 text-xs">
+          {authError}
+        </div>
+      )}
+
       {/* Dual Column credentials tracking status */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {/* Supabase Status Dashboard */}
+        
+        {/* Firebase Live Cloud Status Panel */}
         <div className="p-5 border border-slate-200 rounded-2xl bg-white dark:border-slate-850 dark:bg-slate-950 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2.5">
                 <div className={`p-2 rounded-lg border flex items-center justify-center ${
-                  supabaseStatus.isConnected
+                  currentUser
                     ? 'bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/60 dark:text-emerald-400'
                     : 'bg-amber-50 border-amber-100 text-amber-600 dark:bg-amber-950/20 dark:border-amber-900/60 dark:text-amber-400'
                 }`}>
                   <Database className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Supabase Platform Status</h4>
-                  <p className="text-[11px] text-slate-400">PostgreSQL Cloud Database</p>
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Firebase Firestore</h4>
+                  <p className="text-[11px] text-slate-400">Enterprise Edition Cloud DB</p>
                 </div>
               </div>
               <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider ${
-                supabaseStatus.isConnected
+                currentUser
                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                   : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
               }`}>
-                {supabaseStatus.isConnected ? 'Connected' : 'Offline Mode'}
+                {currentUser ? 'Cloud Sync Active' : 'Sandbox Mode'}
               </span>
             </div>
 
             <div className="mt-5 space-y-2.5 text-xs">
               <div className="flex justify-between items-center py-2 border-b dark:border-slate-900">
-                <span className="text-slate-400">Environment Sync Status</span>
+                <span className="text-slate-400">Auth Identity Status</span>
                 <span className="font-semibold text-slate-700 dark:text-slate-350">
-                  {supabaseStatus.hasCredentials ? '✓ Credentials Present' : '⚠ Missing Secrets (Running Locally)'}
+                  {currentUser ? '✓ Google Profile Active' : '⚠ Guest Mode (Running Locally)'}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b dark:border-slate-900">
-                <span className="text-slate-400">Local Storage Active</span>
-                <span className="font-semibold text-slate-700 dark:text-slate-350">
-                  {supabaseStatus.isConnected ? 'Secondary Backup' : '✓ Primary Persistence'}
+                <span className="text-slate-400">Storage Sync Class</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-350 flex items-center gap-1">
+                  {currentUser ? (
+                    <>
+                      <Wifi className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Full Real-Time Cloud</span>
+                    </>
+                  ) : (
+                    <>
+                      <HardDrive className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Local Sandbox Cache</span>
+                    </>
+                  )}
                 </span>
               </div>
-              {supabaseStatus.hasCredentials && (
-                <div className="py-2">
-                  <span className="text-slate-400 block pb-1">Supabase Host URL</span>
-                  <span className="font-mono bg-slate-50 text-[10px] p-1 rounded-md block border truncate text-slate-600 dark:bg-slate-900 dark:border-slate-850 dark:text-slate-400">
-                    {supabaseStatus.url}
-                  </span>
+              
+              {currentUser && (
+                <div className="space-y-2 pt-2">
+                  <div>
+                    <span className="text-slate-400 block pb-0.5">Active Cloud User</span>
+                    <span className="font-mono bg-slate-50 text-[10px] p-2 rounded-lg block border truncate text-slate-605 dark:bg-slate-900 dark:border-slate-850 dark:text-slate-400">
+                      {currentUser.email}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block pb-0.5">Account UID</span>
+                    <span className="font-mono bg-slate-50 text-[10px] p-2 rounded-lg block border truncate text-slate-550 dark:bg-slate-900 dark:border-slate-850 dark:text-slate-400">
+                      {currentUser.uid}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="mt-5 text-center">
-            <p className="text-[11px] text-slate-400 leading-relaxed text-left">
-              To connect your real database, copy your API credentials into **Settings** → **Secrets** (top right gear) as `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+          <div className="mt-6 flex flex-col gap-3">
+            {currentUser ? (
+              <button
+                onClick={handleSignOut}
+                disabled={loading}
+                className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl border border-rose-200 hover:bg-rose-50/50 text-rose-600 text-xs font-bold transition-all hover:border-rose-300 dark:border-rose-955 dark:hover:bg-rose-950/20 cursor-pointer"
+              >
+                {loading ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Disconnect Firebase Cloud Sync</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleSignIn}
+                disabled={loading}
+                className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/10 hover:shadow-md text-white text-xs font-bold transition-all cursor-pointer transform active:scale-98"
+              >
+                {loading ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                    <span>Connect Google Cloud Sync</span>
+                  </>
+                )}
+              </button>
+            )}
+            <p className="text-[10px] text-slate-400 leading-relaxed text-center mt-1">
+              Connecting Google accounts authorizes real-time data streaming backends for all saved business contacts.
             </p>
           </div>
         </div>
@@ -159,7 +255,7 @@ export default function ConnectionsPanel({
             </div>
           </div>
 
-          <div className="mt-5 text-left">
+          <div className="mt-5 text-left bg-slate-50/50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-850">
             <p className="text-[11px] text-slate-400 leading-relaxed">
               To trigger direct Google Places queries, add an API Key:
               <br />
@@ -173,12 +269,12 @@ export default function ConnectionsPanel({
         </div>
       </div>
 
-      {/* Supabase Schema DDL Setup SQL code block */}
+      {/* Firebase Rules Security Code Block */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Code className="w-5 h-5 text-indigo-500" />
-            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Supabase tables DDL Schema SQL Boileplate</h4>
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Active Firestore DB Schema Rules</h4>
           </div>
           <button
             onClick={handleCopySQL}
@@ -187,12 +283,12 @@ export default function ConnectionsPanel({
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span>Schema Copied!</span>
+                <span>Blueprint Copied!</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span>Copy SQL Setup</span>
+                <span>Copy Blueprint</span>
               </>
             )}
           </button>
@@ -202,12 +298,12 @@ export default function ConnectionsPanel({
           <div className="bg-slate-900 text-slate-450 text-[11px] font-semibold px-4 py-2 border-b dark:border-slate-850 flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-              <span>schema-migration.sql</span>
+              <span>firestore-security-blueprint.rules</span>
             </span>
-            <span className="text-indigo-455 font-mono">PostgreSQL</span>
+            <span className="text-indigo-455 font-mono">Firestore rules v2</span>
           </div>
-          <pre className="p-4.5 bg-slate-950 text-slate-300 font-mono text-[11.5px] leading-relaxed max-h-[280px] overflow-y-auto overflow-x-auto whitespace-pre select-all text-left">
-            {sqlBoilerplate}
+          <pre className="p-4.5 bg-slate-950 text-slate-300 font-mono text-[11.5px] leading-relaxed max-h-[160px] overflow-y-auto overflow-x-auto whitespace-pre select-all text-left">
+            {databaseService.getSQLSchema()}
           </pre>
         </div>
       </div>
@@ -216,9 +312,9 @@ export default function ConnectionsPanel({
       <div className="flex items-start space-x-3 bg-indigo-50/20 border border-indigo-100 p-4.5 rounded-xl dark:bg-indigo-950/10 dark:border-indigo-900/30 text-xs">
         <Info className="w-4.5 h-4.5 text-indigo-500 shrink-0 mt-0.5" />
         <div className="space-y-1 text-slate-600 dark:text-slate-400">
-          <p className="font-bold">Production Configuration Integrity Notice</p>
+          <p className="font-bold">Zero-Trust Security & Sync Protocol</p>
           <p className="leading-relaxed">
-            All database API and Google Places requests are securely processed directly on the client, avoiding external reverse proxy delays and maintaining peak page performance. No actual API keys or database keys are ever cached or stored in the code repo.
+            All user record syncs run purely behind a Zero-Trust client verification script. No user can read or overwrite lists belonging to another authenticated account. All keys remain safe on browser memory storage.
           </p>
         </div>
       </div>

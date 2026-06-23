@@ -24,6 +24,8 @@ import ConnectionsPanel from './components/ConnectionsPanel';
 import { generateMockLeads } from './services/leadsMock';
 import { USA_STATES_AND_CITIES } from './services/usaGeographics';
 import { databaseService } from './services/db';
+import { auth } from './services/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import SearchOverlay from './components/SearchOverlay';
 import PipelineStats from './components/PipelineStats';
 
@@ -184,7 +186,7 @@ export default function App() {
   // Configuration indicators
   const MAPS_KEY = process.env.GOOGLE_MAPS_PLATFORM_KEY || '';
   const googleMapsConfigured = Boolean(MAPS_KEY && MAPS_KEY !== 'YOUR_GOOGLE_MAPS_KEY' && MAPS_KEY !== 'MY_GOOGLE_MAPS_PLATFORM_KEY');
-  const supabaseStatus = databaseService.getSupabaseStatus();
+  const [firebaseConnected, setFirebaseConnected] = useState<boolean>(false);
 
   // Categories list
   const CATEGORIES = [
@@ -214,11 +216,21 @@ export default function App() {
     'Spas'
   ];
 
-  // Load initial systemic state (Async safe Gp)
+  // Load initial systemic state & monitor Cloud Auth changes reactively
   useEffect(() => {
     let active = true;
-    async function loadData() {
-      const activeUser = await databaseService.getCurrentUser();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      let activeUser: ActiveUser;
+      if (firebaseUser) {
+        activeUser = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email || 'user@example.com',
+          createdAt: firebaseUser.metadata.creationTime || new Date().toISOString()
+        };
+      } else {
+        activeUser = await databaseService.getCurrentUser();
+      }
+
       const saved = await databaseService.getSavedBusinesses();
       const history = await databaseService.getSearchHistory();
       
@@ -226,11 +238,13 @@ export default function App() {
         setUser(activeUser);
         setSavedLeads(saved);
         setSearchHistory(history);
+        setFirebaseConnected(!!firebaseUser);
       }
-    }
-    loadData();
+    });
+
     return () => {
       active = false;
+      unsubscribe();
     };
   }, []);
 
@@ -436,7 +450,7 @@ export default function App() {
         savedCount={savedLeads.length}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
-        supabaseConfigured={supabaseStatus.isConnected}
+        supabaseConfigured={firebaseConnected}
       />
 
       {/* Main Core Frame */}
@@ -445,7 +459,7 @@ export default function App() {
           user={user}
           isDark={isDark}
           setIsDark={setIsDark}
-          supabaseConfigured={supabaseStatus.isConnected}
+          supabaseConfigured={firebaseConnected}
           googleMapsConfigured={googleMapsConfigured}
           setMobileOpen={setMobileOpen}
           onOpenConnections={() => setActiveTab('connections')}
@@ -918,12 +932,6 @@ export default function App() {
                 transition={{ duration: 0.2 }}
               >
                 <ConnectionsPanel 
-                  supabaseStatus={{
-                    hasCredentials: supabaseStatus.hasCredentials,
-                    url: supabaseStatus.url,
-                    isConnected: supabaseStatus.isConnected,
-                    error: supabaseStatus.error
-                  }}
                   googleMapsStatus={{
                     hasKey: googleMapsConfigured,
                     keyPlaceholder: MAPS_KEY

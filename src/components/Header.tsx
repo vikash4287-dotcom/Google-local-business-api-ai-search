@@ -53,7 +53,7 @@ export default function Header({
           }`}
         >
           <Database className="w-3.5 h-3.5" />
-          <span>Supabase: {supabaseConfigured ? 'Sync Live' : 'Sandbox (Demo)'}</span>
+          <span>Firebase: {supabaseConfigured ? 'Sync Live' : 'Sandbox (Offline)'}</span>
         </button>
 
         {/* Google Maps Indicator */}

@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents an authenticated user profile",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier matching request.auth.uid"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User email address"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp indicating when user registered"
+        }
+      },
+      "required": ["id", "email", "createdAt"]
+    },
+    "SavedBusiness": {
+      "title": "SavedBusiness",
+      "description": "A bookmarked or saved lead business in CRM",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Lead ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Business Name"
+        },
+        "category": {
+          "type": "string",
+          "description": "Business Category"
+        },
+        "city": {
+          "type": "string",
+          "description": "Business City Location"
+        },
+        "address": {
+          "type": "string",
+          "description": "Business physical address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number"
+        },
+        "website": {
+          "type": "string",
+          "description": "Website URL"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average rating of the business"
+        },
+        "reviewCount": {
+          "type": "number",
+          "description": "Number of reviews"
+        },
+        "savedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp when the business was bookmarked"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["New", "Contacted", "Interested", "Do Not Contact"],
+          "description": "CRM pipeline state of the lead"
+        }
+      },
+      "required": ["id", "name", "category", "city", "savedAt", "status"]
+    },
+    "SearchHistory": {
+      "title": "SearchHistory",
+      "description": "Stored user lead search execution log",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Log Entry ID"
+        },
+        "city": {
+          "type": "string",
+          "description": "Queried city location"
+        },
+        "category": {
+          "type": "string",
+          "description": "Queried category"
+        },
+        "resultsCount": {
+          "type": "number",
+          "description": "Total results found"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO formatted search query run time"
+        }
+      },
+      "required": ["id", "city", "category", "resultsCount", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Direct user profile document"
+    },
+    "/users/{userId}/saved_businesses/{businessId}": {
+      "schema": { "$ref": "#/entities/SavedBusiness" },
+      "description": "Subcollection storing leads saved by specific registered user"
+    },
+    "/users/{userId}/search_history/{historyId}": {
+      "schema": { "$ref": "#/entities/SearchHistory" },
+      "description": "Subcollection logging search runs conducted by specific user"
+    }
+  }
+}

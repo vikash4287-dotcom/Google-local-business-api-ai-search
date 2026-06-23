@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net default-deny gate
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reuseable global helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity-specific helpers
+    function isValidUser(data, uId) {
+      return data.keys().hasAll(['id', 'email', 'createdAt']) 
+        && data.keys().size() == 3 
+        && data.id == uId 
+        && data.email is string 
+        && data.email.size() <= 256 
+        && data.createdAt == request.time;
+    }
+
+    function isValidSavedBusiness(data) {
+      return data.keys().hasAll(['id', 'name', 'category', 'city', 'savedAt', 'status']) 
+        && data.keys().size() >= 6 
+        && data.keys().size() <= 11 
+        && data.id is string 
+        && data.id.size() <= 128 
+        && data.name is string 
+        && data.name.size() <= 256 
+        && data.category is string 
+        && data.category.size() <= 128 
+        && data.city is string 
+        && data.city.size() <= 128 
+        && data.savedAt == request.time 
+        && data.status in ['New', 'Contacted', 'Interested', 'Do Not Contact']
+        && (!data.keys().hasAny(['address']) || (data.address is string && data.address.size() <= 1024))
+        && (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() <= 64))
+        && (!data.keys().hasAny(['website']) || (data.website is string && data.website.size() <= 1024))
+        && (!data.keys().hasAny(['rating']) || (data.rating is number || data.rating == null))
+        && (!data.keys().hasAny(['reviewCount']) || (data.reviewCount is number || data.reviewCount == null));
+    }
+
+    function isValidSearchHistory(data) {
+      return data.keys().hasAll(['id', 'city', 'category', 'resultsCount', 'timestamp']) 
+        && data.keys().size() >= 5 
+        && data.keys().size() <= 6 
+        && data.id is string 
+        && data.id.size() <= 128 
+        && data.city is string 
+        && data.city.size() <= 128 
+        && data.category is string 
+        && data.category.size() <= 128 
+        && data.resultsCount is number 
+        && data.timestamp == request.time;
+    }
+
+    // Rules for User document matching auth uid
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming(), userId);
+    }
+
+    // Rules for User's Saved Businesses CRM leads
+    match /users/{userId}/saved_businesses/{businessId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(businessId) && isValidSavedBusiness(incoming());
+      
+      // Updates can only be status changes, or updates validating correct shape
+      allow update: if isOwner(userId) && isValidId(businessId) && isValidSavedBusiness(incoming()) && (
+        // Enforce immutability of core fields during state change
+        incoming().id == existing().id 
+        && incoming().name == existing().name 
+        && incoming().category == existing().category 
+        && incoming().city == existing().city
+        && incoming().savedAt == existing().savedAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+      );
+      
+      allow delete: if isOwner(userId) && isValidId(businessId);
+    }
+
+    // Rules for User's Search Audits and Logs
+    match /users/{userId}/search_history/{historyId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(historyId) && isValidSearchHistory(incoming());
+      allow delete: if isOwner(userId) && isValidId(historyId);
+    }
+  }
+}

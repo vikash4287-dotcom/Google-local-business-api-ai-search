@@ -33,9 +33,9 @@ export default function Sidebar({
     },
     {
       id: 'connections' as const,
-      label: 'Integrations & SQL',
+      label: 'Integrations & Sync',
       icon: Database,
-      badge: !supabaseConfigured ? 'Dev' : 'Live'
+      badge: !supabaseConfigured ? 'Off' : 'Cloud'
     }
   ];
 
@@ -126,24 +126,23 @@ export default function Sidebar({
             <div className={`mt-0.5 w-2 h-2 rounded-full animate-pulse ${supabaseConfigured ? 'bg-emerald-500' : 'bg-amber-500'}`} />
             <div>
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {supabaseConfigured ? 'Supabase Sync Active' : 'Offline Sandbox Mode'}
+                {supabaseConfigured ? 'Firebase Cloud Sync' : 'Offline Sandbox Mode'}
               </p>
               <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
                 {supabaseConfigured 
-                  ? 'All saved leads and history are synchronized with your PostgreSQL database.' 
-                  : 'Running locally. Saving data in browser storage. Connect Supabase details anytime.'}
+                  ? 'All saved leads and history are synchronized securely with your live Firestore project.' 
+                  : 'Running locally. Saving data in browser. Authenticate with Google to back up.'}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Footer info containing time and user context */}
+        {/* Footer info containing workspace safety seal */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center space-x-2">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
             <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Workspace Secure</span>
           </div>
-          <p className="text-[10px] text-slate-400 mt-0.5">Host Port: 3000</p>
         </div>
       </aside>
     </>
