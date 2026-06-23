@@ -8,6 +8,28 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+export async function loginWithGoogle() {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error: any) {
+    console.error("Google Sign-In error:", error);
+    if (error.code === 'auth/popup-blocked') {
+      throw new Error("Sign-in popup was blocked. Please enable popups in your browser and try again.");
+    }
+    throw error;
+  }
+}
+
+export async function logoutUser() {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error("Sign-out error:", error);
+    throw error;
+  }
+}
+
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',

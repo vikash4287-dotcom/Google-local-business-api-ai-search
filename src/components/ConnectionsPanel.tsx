@@ -18,8 +18,8 @@ import {
   Wifi,
   CloudLightning
 } from 'lucide-react';
-import { auth, googleProvider } from '../services/firebase';
-import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { auth, loginWithGoogle, logoutUser } from '../services/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { databaseService } from '../services/db';
 
 interface ConnectionsPanelProps {
@@ -54,15 +54,10 @@ export default function ConnectionsPanel({
     setLoading(true);
     setAuthError(null);
     try {
-      await signInWithPopup(auth, googleProvider);
+      await loginWithGoogle();
     } catch (err: any) {
       console.error("Google Sign In Error:", err);
-      // Clean up common pop-up errors for the user
-      if (err.code === 'auth/popup-blocked') {
-        setAuthError("Sign-in pop-up was blocked. Please enable pop-ups in your browser.");
-      } else {
-        setAuthError(err.message || "Failed to authenticate via Google.");
-      }
+      setAuthError(err.message || "Failed to authenticate via Google.");
     } finally {
       setLoading(false);
     }
@@ -71,9 +66,10 @@ export default function ConnectionsPanel({
   const handleSignOut = async () => {
     setLoading(true);
     try {
-      await signOut(auth);
+      await logoutUser();
     } catch (err: any) {
       console.error("Sign Out Error:", err);
+      setAuthError(err.message || "Failed to sign out.");
     } finally {
       setLoading(false);
     }

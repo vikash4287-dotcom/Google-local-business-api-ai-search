@@ -1,12 +1,28 @@
-import React from 'react';
-import { Sun, Moon, Database, Menu, ShieldCheck, Mail, Sparkles, Search, Bookmark } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Sun, 
+  Moon, 
+  Database, 
+  Menu, 
+  ShieldCheck, 
+  Mail, 
+  Sparkles, 
+  Search, 
+  Bookmark, 
+  LogIn, 
+  LogOut, 
+  ChevronDown, 
+  RefreshCw, 
+  UserPlus
+} from 'lucide-react';
 import { ActiveUser } from '../types';
+import { loginWithGoogle, logoutUser } from '../services/firebase';
 
 interface HeaderProps {
   user: ActiveUser;
   isDark: boolean;
   setIsDark: (dark: boolean) => void;
-  supabaseConfigured: boolean;
+  supabaseConfigured: boolean; // True when Firebase User is active
   googleMapsConfigured: boolean;
   setMobileOpen: (open: boolean) => void;
   onOpenConnections: () => void;
@@ -29,8 +45,52 @@ export default function Header({
   setActiveTab,
   savedCount
 }: HeaderProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close dropdown ref
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleSignIn = async () => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      await loginWithGoogle();
+      setDropdownOpen(false);
+    } catch (err: any) {
+      setAuthError(err.message || "Failed to authenticate via Google.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      await logoutUser();
+      setDropdownOpen(false);
+    } catch (err: any) {
+      setAuthError(err.message || "Failed to sign out.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Format formatted initial profile badge
-  const userInitial = user.email ? user.email.charAt(0).toUpperCase() : 'V';
+  const userInitial = user.email ? user.email.charAt(0).toUpperCase() : 'G';
 
   return (
     <header className="flex items-center justify-between h-16 px-4 border-b bg-white border-slate-200 text-slate-800 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-100 md:px-8">
@@ -55,7 +115,7 @@ export default function Header({
         >
           <Search className="w-3.5 h-3.5 shrink-0" />
           <span className="flex-1 text-left truncate">Search leads...</span>
-          <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold text-slate-450 dark:text-slate-500 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 tracking-normal font-mono">
+          <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold text-slate-455 dark:text-slate-500 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 tracking-normal font-mono">
             ⌘K
           </kbd>
         </button>
@@ -106,22 +166,85 @@ export default function Header({
         {/* Vertical divider */}
         <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
 
-        {/* User profile dropdown pill */}
-        <div className="flex items-center space-x-2.5">
-          <div className="hidden flex-col items-end text-right md:flex">
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              Agency Partner
-            </span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[150px] truncate" title={user.email}>
-              {user.email}
-            </span>
-          </div>
+        {/* User profile with interactive Dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center space-x-2.5 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/40 border border-transparent hover:border-slate-150 dark:hover:border-slate-850 transition-all text-left cursor-pointer"
+          >
+            <div className="hidden flex-col items-end text-right md:flex select-none">
+              <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 leading-tight">
+                {supabaseConfigured ? 'Connected Partner' : 'Sandbox Guest'}
+              </span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[130px] truncate" title={user.email}>
+                {user.email}
+              </span>
+            </div>
 
-          <div className="flex items-center justify-center w-8.5 h-8.5 rounded-full font-bold text-sm bg-gradient-to-tr from-indigo-600 to-violet-600 text-white border border-indigo-500 shadow-sm relative group cursor-pointer">
-            {userInitial}
-            {/* Online indicator */}
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-950" />
-          </div>
+            <div className="flex items-center justify-center w-8.5 h-8.5 rounded-full font-bold text-sm bg-gradient-to-tr from-indigo-600 to-violet-600 text-white border border-indigo-500 shadow-sm relative shrink-0">
+              {loading ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-white" />
+              ) : (
+                userInitial
+              )}
+              {/* Online indicator */}
+              <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-950 ${
+                supabaseConfigured ? 'bg-emerald-500' : 'bg-amber-500'
+              }`} />
+            </div>
+
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+          </button>
+
+          {/* Absolute Dropdown menu popup */}
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2.5 w-64 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded-2xl shadow-xl p-3 z-55 animate-in fade-in slide-in-from-top-2 duration-100">
+              <div className="pb-3 border-b border-slate-100 dark:border-slate-900 mb-2.5 text-xs text-left">
+                <p className="font-extrabold text-slate-405 dark:text-slate-500 uppercase tracking-wider text-[9px]">Account Identity</p>
+                <p className="font-bold text-slate-800 dark:text-slate-100 mt-1 truncate" title={user.email}>{user.email}</p>
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${supabaseConfigured ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wide">
+                    {supabaseConfigured ? 'Cloud Sync Engaged' : 'Local Sandbox Mode'}
+                  </span>
+                </div>
+              </div>
+
+              {authError && (
+                <div className="mb-2 text-[10px] bg-rose-50 border border-rose-100 text-rose-800 p-2 rounded-xl dark:bg-rose-950/20 dark:border-rose-900 font-semibold leading-relaxed">
+                  {authError}
+                </div>
+              )}
+
+              {supabaseConfigured ? (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={loading}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl cursor-pointer transition-colors text-left"
+                >
+                  <span className="flex items-center gap-2">
+                    <LogOut className="w-4 h-4" />
+                    <span>Disconnect Cloud</span>
+                  </span>
+                  {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSignIn}
+                  disabled={loading}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl cursor-pointer transition-all hover:shadow-md hover:shadow-indigo-500/10 active:scale-98"
+                >
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 animate-pulse" />
+                    <span>Connect Google Cloud</span>
+                  </span>
+                  {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>
