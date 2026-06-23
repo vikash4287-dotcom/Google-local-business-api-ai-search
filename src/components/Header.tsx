@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Database, Menu, ShieldCheck, Mail, Sparkles } from 'lucide-react';
+import { Sun, Moon, Database, Menu, ShieldCheck, Mail, Sparkles, Search } from 'lucide-react';
 import { ActiveUser } from '../types';
 
 interface HeaderProps {
@@ -10,6 +10,7 @@ interface HeaderProps {
   googleMapsConfigured: boolean;
   setMobileOpen: (open: boolean) => void;
   onOpenConnections: () => void;
+  onOpenSearch?: () => void;
 }
 
 export default function Header({
@@ -19,7 +20,8 @@ export default function Header({
   supabaseConfigured,
   googleMapsConfigured,
   setMobileOpen,
-  onOpenConnections
+  onOpenConnections,
+  onOpenSearch
 }: HeaderProps) {
   // Format formatted initial profile badge
   const userInitial = user.email ? user.email.charAt(0).toUpperCase() : 'V';
@@ -67,6 +69,20 @@ export default function Header({
           <span>Places API: {googleMapsConfigured ? 'Direct Key' : 'Smart API (Simulated)'}</span>
         </button>
       </div>
+
+      {/* Sleek Search bar launcher button */}
+      {onOpenSearch && (
+        <button
+          onClick={onOpenSearch}
+          className="hidden sm:flex items-center space-x-2 px-3.5 py-1.5 w-64 bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-805 rounded-xl text-xs font-semibold text-slate-400 dark:text-slate-500 transition-colors cursor-pointer"
+        >
+          <Search className="w-3.5 h-3.5 shrink-0" />
+          <span className="flex-1 text-left">Search CRM Leads...</span>
+          <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold text-slate-450 dark:text-slate-500 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 tracking-normal font-mono">
+            ⌘K
+          </kbd>
+        </button>
+      )}
 
       {/* Right controls: Theme toggle & Profile */}
       <div className="flex items-center space-x-3">

@@ -192,9 +192,28 @@ export const databaseService = {
   },
 
   // ----------------------------------------------------
+  // Status Local Mappings
+  // ----------------------------------------------------
+  getLocalStatuses(): Record<string, 'New' | 'Contacted' | 'Interested' | 'Do Not Contact'> {
+    try {
+      const stored = localStorage.getItem(`${STORAGE_PREFIX}status_map`);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  },
+
+  setLocalStatus(id: string, status: 'New' | 'Contacted' | 'Interested' | 'Do Not Contact') {
+    const map = this.getLocalStatuses();
+    map[id] = status;
+    localStorage.setItem(`${STORAGE_PREFIX}status_map`, JSON.stringify(map));
+  },
+
+  // ----------------------------------------------------
   // Saved Businesses Operations
   // ----------------------------------------------------
   async getSavedBusinesses(): Promise<SavedBusiness[]> {
+    const statuses = this.getLocalStatuses();
     if (supabase) {
       try {
         const { data, error } = await supabase
@@ -213,7 +232,8 @@ export const databaseService = {
             rating: item.rating ? Number(item.rating) : undefined,
             reviewCount: item.review_count,
             city: item.city || '',
-            savedAt: item.created_at
+            savedAt: item.created_at,
+            status: statuses[item.id] || item.status || 'New'
           }));
         }
       } catch (err) {
@@ -225,7 +245,11 @@ export const databaseService = {
     const localBusinesses = localStorage.getItem(LOCAL_KEYS.SAVED);
     if (localBusinesses) {
       try {
-        return JSON.parse(localBusinesses);
+        const parsed = JSON.parse(localBusinesses);
+        return parsed.map((item: any) => ({
+          ...item,
+          status: statuses[item.id] || item.status || 'New'
+        }));
       } catch (e) {
         return [];
       }
@@ -238,7 +262,8 @@ export const databaseService = {
     const savedAt = new Date().toISOString();
     const newSaved: SavedBusiness = {
       ...business,
-      savedAt
+      savedAt,
+      status: 'New'
     };
 
     if (supabase) {
@@ -270,7 +295,8 @@ export const databaseService = {
             rating: data.rating ? Number(data.rating) : undefined,
             reviewCount: data.review_count,
             city: data.city || '',
-            savedAt: data.created_at
+            savedAt: data.created_at,
+            status: 'New'
           };
         }
       } catch (err) {
@@ -286,6 +312,29 @@ export const databaseService = {
       localStorage.setItem(LOCAL_KEYS.SAVED, JSON.stringify(updated));
     }
     return newSaved;
+  },
+
+  async updateBusinessStatus(id: string, status: 'New' | 'Contacted' | 'Interested' | 'Do Not Contact'): Promise<SavedBusiness | null> {
+    this.setLocalStatus(id, status);
+    
+    // Also update in local save list
+    const localBusinesses = localStorage.getItem(LOCAL_KEYS.SAVED);
+    if (localBusinesses) {
+      try {
+        const parsed: SavedBusiness[] = JSON.parse(localBusinesses);
+        const idx = parsed.findIndex(b => b.id === id);
+        if (idx !== -1) {
+          parsed[idx].status = status;
+          localStorage.setItem(LOCAL_KEYS.SAVED, JSON.stringify(parsed));
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    
+    // Return updated lead
+    const saved = await this.getSavedBusinesses();
+    return saved.find(b => b.id === id) || null;
   },
 
   async removeSavedBusiness(id: string): Promise<void> {

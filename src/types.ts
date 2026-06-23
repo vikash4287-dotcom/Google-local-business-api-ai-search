@@ -12,6 +12,7 @@ export interface Business {
 
 export interface SavedBusiness extends Business {
   savedAt: string;
+  status?: 'New' | 'Contacted' | 'Interested' | 'Do Not Contact';
 }
 
 export interface SearchHistory {

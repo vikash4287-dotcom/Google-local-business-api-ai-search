@@ -16,21 +16,25 @@ import {
   Target
 } from 'lucide-react';
 import { Business } from '../types';
+import AIPitchModal from './AIPitchModal';
 
 interface BusinessModalProps {
-  lead: Business | null;
+  lead: (Business & { status?: 'New' | 'Contacted' | 'Interested' | 'Do Not Contact' }) | null;
   onClose: () => void;
   onSave: (lead: Business) => void;
   isSaved: boolean;
+  onUpdateStatus?: (id: string, status: 'New' | 'Contacted' | 'Interested' | 'Do Not Contact') => void;
 }
 
 export default function BusinessModal({
   lead,
   onClose,
   onSave,
-  isSaved
+  isSaved,
+  onUpdateStatus
 }: BusinessModalProps) {
   const [copied, setCopied] = useState(false);
+  const [isAIPitchOpen, setIsAIPitchOpen] = useState(false);
   
   if (!lead) return null;
 
@@ -66,6 +70,24 @@ export default function BusinessModal({
     msg += `Could we hop on a quick 5-minute call this Thursday to discuss how we can turn this into a growth channel for ${lead.name}?\n\n`;
     msg += `Best regards,\n[Your Name] - Local Lead Consultant`;
     return msg;
+  };
+
+  const getSubjectLine = () => {
+    if (!hasWebsite) {
+      return `Website optimization question for ${lead.name}`;
+    } else if (isPoorRating) {
+      return `Online reputation query for ${lead.name}`;
+    } else if (isLowReviews) {
+      return `Google Business review channel for ${lead.name}`;
+    } else {
+      return `Growth partnership query for ${lead.name}`;
+    }
+  };
+
+  const sendQuickEmail = () => {
+    const subject = getSubjectLine();
+    const body = generatePitchText();
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const copyToClipboard = () => {
@@ -112,6 +134,37 @@ export default function BusinessModal({
 
         {/* Scrollable Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Outreach Campaign Tracking Status Banner */}
+          {isSaved && onUpdateStatus && (
+            <div className="p-4 rounded-xl border border-indigo-150 bg-indigo-50/5 dark:border-indigo-900/30 dark:bg-indigo-950/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-extrabold uppercase bg-indigo-50/70 dark:bg-indigo-950 text-indigo-750 dark:text-indigo-400 px-2 py-0.5 rounded-md border border-indigo-100/20 tracking-wider">
+                  CRM Tracking
+                </span>
+                <h4 className="text-sm font-bold text-slate-850 dark:text-slate-100 mt-1">
+                  Outreach Campaign Status
+                </h4>
+              </div>
+              <select
+                value={lead.status || 'New'}
+                onChange={(e) => {
+                  onUpdateStatus(lead.id, e.target.value as any);
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold border cursor-pointer outline-hidden transition-all dark:bg-slate-950 ${
+                  lead.status === 'Contacted' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-900/30 dark:text-indigo-400' :
+                  lead.status === 'Interested' ? 'bg-emerald-50 border-emerald-250 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-900/30 dark:text-emerald-405' :
+                  lead.status === 'Do Not Contact' ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-900/30 dark:text-rose-400' :
+                  'bg-slate-50 border-slate-205 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300'
+                }`}
+              >
+                <option value="New">🏷 New Lead</option>
+                <option value="Contacted">✉ Contacted</option>
+                <option value="Interested">🔥 Interested</option>
+                <option value="Do Not Contact">✖ Do Not Contact</option>
+              </select>
+            </div>
+          )}
+
           {/* Metadata info cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {/* Rating */}
@@ -227,29 +280,66 @@ export default function BusinessModal({
             </div>
           </div>
 
+          {/* Gemini AI Premium Pitch CTA Card */}
+          <div className="p-4 rounded-xl bg-linear-to-br from-indigo-500/10 via-purple-500/5 to-pink-500/5 border border-indigo-200/30 dark:border-indigo-900/30 dark:from-indigo-950/20 dark:to-purple-950/5 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 -transtion-y-1 translate-x-1 p-8 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500 pointer-events-none" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-1">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-indigo-100 text-indigo-750 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200/20 tracking-wider leading-none">
+                  ✨ Gemini Core Upgrade
+                </span>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 mt-1">
+                  Personalize Outreach Pitch with AI
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Use Gemini to draft an outreach cold template structured specifically around this lead's deficits.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAIPitchOpen(true)}
+                className="px-4.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-md shadow-indigo-505 active:scale-97 cursor-pointer shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                <span>Launch AI Pitcher</span>
+              </button>
+            </div>
+          </div>
+
           {/* Cold Pitch Generator Section */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Mail className="w-4.5 h-4.5 text-indigo-500" />
-                <span>Cold Outreach Sales Pitch (Ready to Send)</span>
+                <Mail className="w-4.5 h-4.5 text-indigo-505" />
+                <span>Standard Template Outline (Fallback)</span>
               </h4>
-              <button
-                onClick={copyToClipboard}
-                className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300 rounded-md cursor-pointer transition-colors"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
-                    <span className="text-emerald-500">Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy Template</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={sendQuickEmail}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 dark:bg-indigo-950 dark:border-indigo-900/50 dark:text-indigo-400 dark:hover:bg-indigo-900 rounded-lg cursor-pointer transition-colors"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Quick Email</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={copyToClipboard}
+                  className="flex items-center space-x-1 px-3 py-1.5 text-xs font-semibold bg-slate-55 border border-slate-200 hover:bg-slate-100 text-slate-600 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300 rounded-lg cursor-pointer transition-colors"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="text-emerald-500 font-bold">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Template</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
             <div className="p-4.5 rounded-xl border border-slate-150 bg-slate-950 font-mono text-xs text-slate-300 leading-relaxed overflow-x-auto whitespace-pre-wrap select-all max-h-[180px] border-slate-200 dark:border-slate-850">
               {generatePitchText()}
@@ -259,7 +349,7 @@ export default function BusinessModal({
         </div>
 
         {/* Footer controls: Save / Dismiss */}
-        <div className="flex items-center justify-between p-6 border-t border-slate-100 bg-slate-50 dark:border-slate-850 dark:bg-slate-950/30 gap-3">
+        <div className="flex items-center justify-between p-6 border-t border-slate-100 bg-slate-55 dark:border-slate-850 dark:bg-slate-950/30 gap-3">
           <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider hidden sm:block">
             LEADMINE CRM PLANNERS
           </p>
@@ -289,6 +379,13 @@ export default function BusinessModal({
         </div>
 
       </div>
+
+      {isAIPitchOpen && (
+        <AIPitchModal 
+          lead={lead} 
+          onClose={() => setIsAIPitchOpen(false)} 
+        />
+      )}
     </div>
   );
 }

@@ -24,6 +24,8 @@ import ConnectionsPanel from './components/ConnectionsPanel';
 import { generateMockLeads } from './services/leadsMock';
 import { USA_STATES_AND_CITIES } from './services/usaGeographics';
 import { databaseService } from './services/db';
+import SearchOverlay from './components/SearchOverlay';
+import PipelineStats from './components/PipelineStats';
 
 export default function App() {
   // Theme state (SaaS default is high-contrast light, with full dark mode support)
@@ -31,6 +33,8 @@ export default function App() {
     const saved = localStorage.getItem('leadmine_ai_theme');
     return saved === 'dark';
   });
+
+  const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
 
   // Navigation state
   const [activeTab, setActiveTab] = useState<'search' | 'saved' | 'connections'>('search');
@@ -184,9 +188,30 @@ export default function App() {
 
   // Categories list
   const CATEGORIES = [
-    'Restaurants', 'Dentists', 'Salons', 'Gyms', 'Hotels', 
-    'Real Estate Agencies', 'Car Dealers', 'Cafes', 'Doctors', 
-    'Interior Designers', 'Make up Artists', 'Car wash', 'Car Garage', 'Pest Control'
+    'Accountants',
+    'Bakeries',
+    'Boutiques',
+    'Cafes',
+    'Car Dealers',
+    'Car Garage',
+    'Car wash',
+    'Dentists',
+    'Doctors',
+    'Electricians',
+    'Gyms',
+    'Hotels',
+    'HVAC Services',
+    'Interior Designers',
+    'Lawyers',
+    'Make up Artists',
+    'Pest Control',
+    'Pet Groomers',
+    'Plumbers',
+    'Real Estate Agencies',
+    'Restaurants',
+    'Roofing Contractors',
+    'Salons',
+    'Spas'
   ];
 
   // Load initial systemic state (Async safe Gp)
@@ -222,6 +247,20 @@ export default function App() {
   // Initial Seed Search to fill page on load
   useEffect(() => {
     handleSearch(true);
+  }, []);
+
+  // Global search overlay keyboard shortcut listener (Cmd/Ctrl + K)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchOverlayOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
   }, []);
 
   // Execution Search Logic
@@ -342,6 +381,19 @@ export default function App() {
     }
   };
 
+  const handleUpdateStatus = async (id: string, status: SavedBusiness['status']) => {
+    try {
+      if (!status) return;
+      const updatedItem = await databaseService.updateBusinessStatus(id, status);
+      if (updatedItem) {
+        setSavedLeads(prev => prev.map(item => item.id === id ? { ...item, status } : item));
+        setSelectedLead(prev => prev && prev.id === id ? { ...prev, status } : prev);
+      }
+    } catch (err) {
+      console.error('Failed to update lead status:', err);
+    }
+  };
+
   const handleClearHistory = async () => {
     if (confirm('Clear all local search history?')) {
       await databaseService.clearSearchHistory();
@@ -397,6 +449,7 @@ export default function App() {
           googleMapsConfigured={googleMapsConfigured}
           setMobileOpen={setMobileOpen}
           onOpenConnections={() => setActiveTab('connections')}
+          onOpenSearch={() => setIsSearchOverlayOpen(true)}
         />
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
@@ -740,7 +793,10 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
+                    {/* Pipeline Health Analytics */}
+                    <PipelineStats savedLeads={savedLeads} />
+
                     {/* CRM Leads grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {savedLeads.map((item) => {
@@ -799,6 +855,28 @@ export default function App() {
                                     Healthy Profile
                                   </span>
                                 )}
+                              </div>
+
+                              {/* Outreach Tracking Status */}
+                              <div className="mt-4 pt-3 border-t border-dashed border-slate-150 dark:border-slate-850 flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-extrabold text-slate-450 dark:text-slate-500 uppercase tracking-widest">Outreach Status:</span>
+                                <select
+                                  value={item.status || 'New'}
+                                  onChange={async (e) => {
+                                    await handleUpdateStatus(item.id, e.target.value as any);
+                                  }}
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase border cursor-pointer outline-hidden transition-all dark:bg-slate-950 ${
+                                    item.status === 'Contacted' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-900/40 dark:text-indigo-400' :
+                                    item.status === 'Interested' ? 'bg-emerald-50 border-emerald-250 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-900/40 dark:text-emerald-400' :
+                                    item.status === 'Do Not Contact' ? 'bg-rose-50 border-rose-250 text-rose-700 dark:bg-rose-950/40 dark:border-rose-900/40 dark:text-rose-400' :
+                                    'bg-slate-50 border-slate-205 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300'
+                                  }`}
+                                >
+                                  <option value="New">🏷 New Lead</option>
+                                  <option value="Contacted">✉ Contacted</option>
+                                  <option value="Interested">🔥 Interested</option>
+                                  <option value="Do Not Contact">✖ Do Not Contact</option>
+                                </select>
                               </div>
                             </div>
 
@@ -864,8 +942,19 @@ export default function App() {
           onClose={() => setSelectedLead(null)}
           onSave={handleSaveLead}
           isSaved={savedLeadsNameCityMap.has(`${selectedLead.name.toLowerCase()}_${selectedLead.city.toLowerCase()}`)}
+          onUpdateStatus={handleUpdateStatus}
         />
       )}
+
+      {/* Global Command Palette search overlay */}
+      <SearchOverlay
+        isOpen={isSearchOverlayOpen}
+        onClose={() => setIsSearchOverlayOpen(false)}
+        savedLeads={savedLeads}
+        onSelectLead={(lead) => {
+          setSelectedLead(lead);
+        }}
+      />
     </div>
   );
 }

@@ -58,6 +58,46 @@ const BUSINESS_TEMPLATES: Record<string, { prefixes: string[]; suffixes: string[
   'Pest Control': {
     prefixes: ['EcoGuard', 'Terminator', 'Apex', 'PestShield', 'No Bugs', 'SafeHaven', 'Vanguard', 'Elite', 'GreenTech', 'Sentinel'],
     suffixes: ['Pest Control', 'Exterminators', 'Pest Management', 'Bug Busters', 'Termite Protection', 'Services']
+  },
+  Plumbers: {
+    prefixes: ['Rescue Rooter', 'Pipeline', 'FlowMaster', 'AquaFix', 'Flush', 'Blue Drop', 'HydroForce', 'Rapid', 'Apex', 'Sumps'],
+    suffixes: ['Plumbing', 'Plumbing & Drain', 'Plumbers', 'Rooter Service', 'Aqua Services', 'Emergency Plumbing']
+  },
+  Electricians: {
+    prefixes: ['VoltAmp', 'Bright Wire', 'Shockwave', 'LiveWire', 'Currents', 'Grid', 'Apex', 'Sparky', 'Electra', 'Tesla'],
+    suffixes: ['Electric', 'Electrical Services', 'Power & Light', 'Energy Solutions', 'Electricians', 'Wiring Co']
+  },
+  Bakeries: {
+    prefixes: ['Golden Crust', 'Sweet Treats', 'Sugar & Spice', 'The Dough', 'Fluffy', 'Artesian', 'Daily Bread', 'Heavenly', 'Glazed', 'Crumb'],
+    suffixes: ['Bakery', 'Bakehouse', 'Pastries', 'Donut Shop', 'Cake Studio', 'Baked Goods', 'Confectionery']
+  },
+  Boutiques: {
+    prefixes: ['Velvet Thread', 'Chic & Co', 'Sassy', 'Elysian', 'Luxe', 'Urban Wear', 'Trendsetters', 'Bella', 'Prism', 'The Hanger'],
+    suffixes: ['Boutique', 'Apparel', 'Clothing Co', 'Closet', 'Fashion Lounge', 'Threads', 'Style House']
+  },
+  Accountants: {
+    prefixes: ['Balance Sheet', 'Ledger', 'TaxCare', 'Fortress', 'Apex', 'Summit', 'Precision', 'Fiduciary', 'Equinox', 'WealthGuard'],
+    suffixes: ['CPA Group', 'Accountants', 'Finances', 'Tax Services', 'Accounting & Advisory', 'Bookkeeping']
+  },
+  'Roofing Contractors': {
+    prefixes: ['IronShield', 'WeatherGuard', 'Apex', 'Summit', 'Black Ridge', 'Top Tier', 'EverDry', 'Royal', 'Elysian', 'Slate'],
+    suffixes: ['Roofing', 'Roofing & Siding', 'Contractors', 'Roof Systems', 'Roof Care', 'Co']
+  },
+  'HVAC Services': {
+    prefixes: ['AirCare', 'Cool Breeze', 'Thermal', 'Apex', 'Summit', 'Comfort Zone', 'Polar', 'EcoTemp', 'Frost', 'EverWarm'],
+    suffixes: ['HVAC', 'Heating & Cooling', 'Air Conditioning', 'Climate Control', 'Services', 'Systems']
+  },
+  Spas: {
+    prefixes: ['Serenity', 'Tranquil', 'Orchid', 'Lotus', 'Aura', 'Elysian', 'Ocean Breeze', 'Revive', 'Bliss', 'DewDrop'],
+    suffixes: ['Spa', 'Wellness Center', 'Day Spa', 'Spa & Massage', 'Aesthetics', 'Retreat']
+  },
+  Lawyers: {
+    prefixes: ['Justice Alliance', 'Apex', 'Vanguard', 'Liberty', 'Pinnacle', 'Meridian', 'Summit', 'Veritas', 'Beacon', 'Fairway'],
+    suffixes: ['Law Firm', 'Law Partners', 'Legal Group', 'Attorneys', 'Law Offices', 'Counselors']
+  },
+  'Pet Groomers': {
+    prefixes: ['Paws & Claws', 'Tail Waggers', 'Furry Friends', 'Bark & Bubble', 'The Groom Room', 'Happy Pups', 'Luxe Pet', 'Spiffy', 'Slicker', 'Prancing'],
+    suffixes: ['Pet Grooming', 'Grooming Salon', 'Dog Wash', 'Pet Spa', 'Groomers', 'Pet Care']
   }
 };
 

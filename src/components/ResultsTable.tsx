@@ -150,20 +150,59 @@ export default function ResultsTable({
   return (
     <div className="space-y-4">
       {/* Table Action Controls */}
-      <div className="flex flex-col justify-between items-center bg-slate-50 border border-slate-150 p-4 rounded-xl dark:bg-slate-900/60 dark:border-slate-800 gap-3 md:flex-row">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-50 border border-slate-150 p-4 rounded-xl dark:bg-slate-900/60 dark:border-slate-800 gap-4">
         <div>
           <span className="text-sm font-bold text-slate-800 dark:text-slate-200 block md:inline">
             Search Counter: <span className="text-indigo-600 dark:text-indigo-400">{processedLeads.length}</span> lead matches discovered in {citySearched}
           </span>
           <span className="text-xs text-slate-400 dark:text-slate-500 block">Identified high-conversion potential marketing deficits.</span>
         </div>
-        <button
-          onClick={exportToCSV}
-          className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer w-full justify-center md:w-auto"
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          <span>Export All CSV Leads</span>
-        </button>
+        
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          {/* Prioritize / Sort Drodown */}
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider shrink-0 block">Sort Leads:</span>
+            <select
+              value={
+                sortField === 'rating' && sortDirection === 'desc' ? 'rating-desc' :
+                sortField === 'rating' && sortDirection === 'asc' ? 'rating-asc' :
+                sortField === 'reviewCount' && sortDirection === 'desc' ? 'reviews-desc' :
+                'default'
+              }
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'rating-desc') {
+                  setSortField('rating');
+                  setSortDirection('desc');
+                } else if (val === 'rating-asc') {
+                  setSortField('rating');
+                  setSortDirection('asc');
+                } else if (val === 'reviews-desc') {
+                  setSortField('reviewCount');
+                  setSortDirection('desc');
+                } else {
+                  setSortField(null);
+                  setSortDirection('desc');
+                }
+                setCurrentPage(1);
+              }}
+              className="px-3.5 py-2 bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-800 dark:text-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all focus:border-indigo-505 outline-hidden cursor-pointer"
+            >
+              <option value="default">Default Match</option>
+              <option value="rating-desc">Rating (High to Low)</option>
+              <option value="rating-asc">Rating (Low to High)</option>
+              <option value="reviews-desc">Review Count</option>
+            </select>
+          </div>
+
+          <button
+            onClick={exportToCSV}
+            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer justify-center"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Export All CSV Leads</span>
+          </button>
+        </div>
       </div>
 
       {/* Desktop Table View */}
