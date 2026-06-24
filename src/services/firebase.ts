@@ -1,5 +1,13 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  sendPasswordResetEmail 
+} from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -16,6 +24,52 @@ export async function loginWithGoogle() {
     console.error("Google Sign-In error:", error);
     if (error.code === 'auth/popup-blocked') {
       throw new Error("Sign-in popup was blocked. Please enable popups in your browser and try again.");
+    }
+    throw error;
+  }
+}
+
+export async function signUpWithEmail(email: string, password: string) {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error: any) {
+    console.error("Email sign-up error:", error);
+    if (error.code === 'auth/email-already-in-use') {
+      throw new Error("This email is already registered. Please login instead.");
+    } else if (error.code === 'auth/weak-password') {
+      throw new Error("Password is too weak. Please use at least 6 characters.");
+    } else if (error.code === 'auth/invalid-email') {
+      throw new Error("Invalid email address format.");
+    }
+    throw error;
+  }
+}
+
+export async function loginWithEmail(email: string, password: string) {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error: any) {
+    console.error("Email sign-in error:", error);
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+      throw new Error("Incorrect email or password. Please verify your credentials.");
+    } else if (error.code === 'auth/invalid-email') {
+      throw new Error("Invalid email address format.");
+    }
+    throw error;
+  }
+}
+
+export async function forgotPassword(email: string) {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    console.error("Forgot password error:", error);
+    if (error.code === 'auth/user-not-found') {
+      throw new Error("No user found with this email address.");
+    } else if (error.code === 'auth/invalid-email') {
+      throw new Error("Invalid email address format.");
     }
     throw error;
   }

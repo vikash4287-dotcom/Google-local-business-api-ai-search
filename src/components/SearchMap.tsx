@@ -254,9 +254,9 @@ export default function SearchMap({
         {/* Map Header with HUD state details */}
         <div className="relative z-10 flex items-center justify-between p-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-850">
           <div>
-            <span className="inline-flex items-center space-x-1.5 text-[10px] uppercase font-extrabold tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-              <span>Geo Sandbox Tracker</span>
+            <span className="inline-flex items-center space-x-1.5 text-[10px] uppercase font-extrabold tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-md">
+              <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
+              <span>Visual Directory Map</span>
             </span>
             <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
               Active Visual Plotter • {citySearched || 'US Target City'} ({validCoordinates.length} pins)
@@ -412,13 +412,13 @@ export default function SearchMap({
         </div>
 
         {/* Small subtle hints bar replacing instructions overlay entirely */}
-        <div className="relative z-10 px-4 py-2 bg-slate-100/80 dark:bg-slate-900/80 border-t border-slate-200/50 dark:border-slate-800/55 flex items-center justify-between text-[9px] text-slate-450 dark:text-slate-400 font-medium">
+        <div className="relative z-10 px-4 py-2 bg-slate-100/80 dark:bg-slate-900/80 border-t border-slate-200/50 dark:border-slate-800/55 flex items-center justify-between text-[9px] text-slate-400 dark:text-slate-400 font-medium">
           <span className="flex items-center gap-1 select-none">
             <Info className="w-3.5 h-3.5" />
-            Interactive Local Sandbox mode plots exact geographic coordinates of the {validCoordinates.length} loaded businesses instantly.
+            Interactive visual mode plots exact geographic coordinates of the {validCoordinates.length} loaded businesses instantly.
           </span>
           <span className="font-mono opacity-80 uppercase tracking-widest font-extrabold select-none">
-            Offline Sandbox Active
+            Active Directory Map
           </span>
         </div>
       </div>

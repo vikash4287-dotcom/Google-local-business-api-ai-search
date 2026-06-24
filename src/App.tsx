@@ -13,7 +13,8 @@ import {
   TrendingDown,
   Building2,
   AlertCircle,
-  Mail
+  Mail,
+  Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Business, SavedBusiness, SearchHistory, ActiveUser, UserSubscription, SubscriptionTier } from './types';
@@ -33,8 +34,12 @@ import SearchCategoryChart from './components/SearchCategoryChart';
 import FAQSection from './components/FAQSection';
 import PricingSection from './components/PricingSection';
 import UpgradeModal from './components/UpgradeModal';
+import AuthPage from './components/AuthPage';
 
 export default function App() {
+  // Authentication Modal state
+  const [activeAuthModal, setActiveAuthModal] = useState<'login' | 'signup' | null>(null);
+
   // Theme state (SaaS default is high-contrast light, with full dark mode support)
   const [isDark, setIsDark] = useState<boolean>(() => {
     const saved = localStorage.getItem('localshop_ai_theme');
@@ -53,7 +58,7 @@ export default function App() {
 
   // Navigation state
   const [activeTab, setActiveTab] = useState<'search' | 'saved'>('search');
-  const [activeFooterModal, setActiveFooterModal] = useState<'privacy' | 'terms' | 'about' | 'info' | null>(null);
+  const [activeFooterModal, setActiveFooterModal] = useState<'privacy' | 'terms' | 'about' | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Core CRM data structures states
@@ -511,6 +516,7 @@ export default function App() {
           setMobileOpen={setMobileOpen}
           onOpenConnections={() => setActiveFooterModal('info')}
           onOpenSearch={() => setIsSearchOverlayOpen(true)}
+          onOpenAuth={(mode) => setActiveAuthModal(mode)}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           savedCount={savedLeads.length}
@@ -922,14 +928,43 @@ export default function App() {
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
-                <div className="space-y-1 py-1">
-                  <h1 className="text-2xl font-black font-sans tracking-tight text-indigo-700 dark:text-indigo-400">
-                    Your Saved Business Leads CRM ({savedLeads.length})
-                  </h1>
-                  <p className="text-sm text-slate-500 dark:text-slate-404 font-medium">
-                    Analyze, manage, and plan high-conversion outbound strategies for saved targets locally or sync'd online.
-                  </p>
-                </div>
+                {!firebaseConnected ? (
+                  <div className="max-w-md mx-auto my-12 text-center p-8 bg-white border border-slate-200 rounded-3xl dark:border-slate-850 dark:bg-slate-950/70 shadow-lg space-y-6 animate-in fade-in zoom-in-95 duration-300 relative overflow-hidden">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-600" />
+                    <div className="mx-auto flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                      <Lock className="w-6.5 h-6.5 animate-pulse" />
+                    </div>
+                    <div className="space-y-2">
+                      <h2 className="text-xl font-black text-slate-900 dark:text-white">Authentication Required</h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                        Please Sign Up or Log In to access your Saved Leads CRM. Keep your prospects organized, synchronized online, and secured.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                      <button
+                        onClick={() => setActiveAuthModal('login')}
+                        className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-97"
+                      >
+                        Sign In
+                      </button>
+                      <button
+                        onClick={() => setActiveAuthModal('signup')}
+                        className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-305 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-97"
+                      >
+                        Create Account
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-1 py-1">
+                      <h1 className="text-2xl font-black font-sans tracking-tight text-indigo-700 dark:text-indigo-400">
+                        Your Saved Business Leads CRM ({savedLeads.length})
+                      </h1>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                        Analyze, manage, and plan high-conversion outbound strategies for saved targets locally or sync'd online.
+                      </p>
+                    </div>
 
                 {savedLeads.length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-16 text-center border-2 border-dashed border-slate-200 rounded-3xl dark:border-slate-800 bg-white dark:bg-slate-950">
@@ -1061,6 +1096,8 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                  </>
+                )}
               </motion.div>
             )}
 
@@ -1087,6 +1124,8 @@ export default function App() {
           onSave={handleSaveLead}
           isSaved={savedLeadsNameCityMap.has(`${selectedLead.name.toLowerCase()}_${selectedLead.city.toLowerCase()}`)}
           onUpdateStatus={handleUpdateStatus}
+          firebaseConnected={firebaseConnected}
+          onOpenAuth={(mode) => setActiveAuthModal(mode)}
         />
       )}
 
@@ -1107,6 +1146,20 @@ export default function App() {
         subscription={subscription}
         onSubscriptionUpdate={setSubscription}
       />
+
+      {/* Global Authentication Dialog (Login, Sign Up, Forgot Password) */}
+      {activeAuthModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="absolute inset-0" onClick={() => setActiveAuthModal(null)} />
+          <div className="relative w-full max-w-md animate-in fade-in zoom-in-95 duration-200 my-auto">
+            <AuthPage 
+              initialMode={activeAuthModal}
+              onSuccess={() => setActiveAuthModal(null)}
+              onCancel={() => setActiveAuthModal(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

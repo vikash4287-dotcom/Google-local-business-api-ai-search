@@ -314,9 +314,9 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
                   <div className="p-3.5 bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/40 dark:border-indigo-900/30 rounded-xl flex items-start gap-2.5">
                     <Info className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
                     <div className="space-y-0.5">
-                      <p className="text-[10px] uppercase font-black tracking-wider text-indigo-600 dark:text-indigo-400">Sandbox Test Environment</p>
+                      <p className="text-[10px] uppercase font-black tracking-wider text-indigo-600 dark:text-indigo-400">Demo Payment Environment</p>
                       <p className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold leading-relaxed">
-                        To pay, click the trigger help button below or enter any realistic card number (e.g. 4242). No real charges are executed.
+                        To pay, enter any realistic card number (e.g. 4242). No real charges are executed.
                       </p>
                       <button
                         type="button"

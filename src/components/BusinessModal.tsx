@@ -14,7 +14,8 @@ import {
   Lightbulb,
   Building,
   Target,
-  Award
+  Award,
+  Lock
 } from 'lucide-react';
 import { Business } from '../types';
 import AIPitchModal from './AIPitchModal';
@@ -27,6 +28,8 @@ interface BusinessModalProps {
   onSave: (lead: Business) => void;
   isSaved: boolean;
   onUpdateStatus?: (id: string, status: 'New' | 'Contacted' | 'Interested' | 'Do Not Contact') => void;
+  firebaseConnected?: boolean;
+  onOpenAuth?: (mode: 'login' | 'signup') => void;
 }
 
 export default function BusinessModal({
@@ -34,7 +37,9 @@ export default function BusinessModal({
   onClose,
   onSave,
   isSaved,
-  onUpdateStatus
+  onUpdateStatus,
+  firebaseConnected = false,
+  onOpenAuth
 }: BusinessModalProps) {
   const [copied, setCopied] = useState(false);
   const [isAIPitchOpen, setIsAIPitchOpen] = useState(false);
@@ -69,6 +74,10 @@ export default function BusinessModal({
 
   const handleAnalyzeWebsite = async () => {
     if (!lead) return;
+    if (!firebaseConnected) {
+      if (onOpenAuth) onOpenAuth('login');
+      return;
+    }
     setIsAuditing(true);
     setAuditError(null);
     try {
@@ -117,6 +126,14 @@ export default function BusinessModal({
     } finally {
       setIsAuditing(false);
     }
+  };
+
+  const handleLaunchAIPitch = () => {
+    if (!firebaseConnected) {
+      if (onOpenAuth) onOpenAuth('login');
+      return;
+    }
+    setIsAIPitchOpen(true);
   };
   
   if (!lead) return null;
@@ -408,8 +425,17 @@ export default function BusinessModal({
                   onClick={handleAnalyzeWebsite}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-sm cursor-pointer whitespace-nowrap self-start sm:self-center"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{hasWebsite ? 'Analyze Website' : 'Perform Digital Presence Audit'}</span>
+                  {firebaseConnected ? (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{hasWebsite ? 'Analyze Website' : 'Perform Digital Presence Audit'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Unlock AI Audit (Sign In)</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
@@ -575,7 +601,8 @@ export default function BusinessModal({
                     className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center gap-1"
                     disabled={isAuditing}
                   >
-                    <span>Re-Run Audit</span>
+                    {!firebaseConnected && <Lock className="w-3 h-3" />}
+                    <span>{firebaseConnected ? 'Re-Run Audit' : 'Sign In to Re-Run'}</span>
                   </button>
                 </div>
               </div>
@@ -627,11 +654,20 @@ export default function BusinessModal({
               </div>
               <button
                 type="button"
-                onClick={() => setIsAIPitchOpen(true)}
+                onClick={handleLaunchAIPitch}
                 className="px-4.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-md shadow-indigo-505 active:scale-97 cursor-pointer shrink-0"
               >
-                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                <span>Launch AI Pitcher</span>
+                {firebaseConnected ? (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                    <span>Launch AI Pitcher</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Unlock AI Pitcher (Sign In)</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -184,7 +184,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                 <div className="flex gap-2">
                   <Info className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                    Test Sandbox: Click this helper button to fill out safe demo credit parameters.
+                    Demo Mode: Click this helper button to fill out safe demo credit parameters.
                     <button
                       type="button"
                       onClick={autofillTestCard}
