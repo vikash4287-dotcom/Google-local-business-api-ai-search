@@ -899,7 +899,13 @@ export default function App() {
                 {/* KPI Metrics Dashboard Cards directly above results */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {/* Businesses Found */}
-                  <div className="p-4 bg-white border border-slate-100 rounded-xl dark:bg-slate-950 dark:border-slate-850 shadow-xs flex flex-col justify-between relative overflow-hidden group">
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut", delay: 0 }}
+                    whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
+                    className="p-4 bg-white border border-slate-100 rounded-xl dark:bg-slate-950 dark:border-slate-850 shadow-xs flex flex-col justify-between relative overflow-hidden group cursor-pointer transition-colors hover:border-indigo-100 dark:hover:border-slate-800"
+                  >
                     <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 p-6 bg-slate-50 dark:bg-slate-900 rounded-full blur-xs pointer-events-none" />
                     <div className="flex items-center justify-between relative z-10">
                       <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Businesses Found</span>
@@ -915,10 +921,16 @@ export default function App() {
                         <span className="text-indigo-500 font-bold">●</span> Active corpus
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* High Opportunity Leads */}
-                  <div className="p-4 bg-white border border-slate-100 rounded-xl dark:bg-slate-950 dark:border-slate-850 shadow-xs flex flex-col justify-between relative overflow-hidden group">
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut", delay: 0.05 }}
+                    whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
+                    className="p-4 bg-white border border-slate-100 rounded-xl dark:bg-slate-950 dark:border-slate-850 shadow-xs flex flex-col justify-between relative overflow-hidden group cursor-pointer transition-colors hover:border-rose-100 dark:hover:border-slate-800"
+                  >
                     <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 p-6 bg-rose-50/10 dark:bg-rose-950/10 rounded-full blur-xs pointer-events-none" />
                     <div className="flex items-center justify-between relative z-10">
                       <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">High Opportunity</span>
@@ -934,10 +946,16 @@ export default function App() {
                         <span className="text-rose-500 font-bold">●</span> Critical deficit scope
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* No Website Leads */}
-                  <div className="p-4 bg-white border border-slate-100 rounded-xl dark:bg-slate-950 dark:border-slate-850 shadow-xs flex flex-col justify-between relative overflow-hidden group">
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+                    whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
+                    className="p-4 bg-white border border-slate-100 rounded-xl dark:bg-slate-950 dark:border-slate-850 shadow-xs flex flex-col justify-between relative overflow-hidden group cursor-pointer transition-colors hover:border-amber-100 dark:hover:border-slate-800"
+                  >
                     <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 p-6 bg-amber-50/10 dark:bg-amber-950/10 rounded-full blur-xs pointer-events-none" />
                     <div className="flex items-center justify-between relative z-10">
                       <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">No Website Deficits</span>
@@ -953,10 +971,16 @@ export default function App() {
                         <span className="text-amber-500 font-bold">●</span> Rebuild pipelines
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Low Review Leads */}
-                  <div className="p-4 bg-white border border-slate-100 rounded-xl dark:bg-slate-950 dark:border-slate-850 shadow-xs flex flex-col justify-between relative overflow-hidden group">
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
+                    whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
+                    className="p-4 bg-white border border-slate-100 rounded-xl dark:bg-slate-950 dark:border-slate-850 shadow-xs flex flex-col justify-between relative overflow-hidden group cursor-pointer transition-colors hover:border-indigo-100 dark:hover:border-slate-800"
+                  >
                     <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 p-6 bg-indigo-50/10 dark:bg-indigo-950/10 rounded-full blur-xs pointer-events-none" />
                     <div className="flex items-center justify-between relative z-10">
                       <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Low Social Proof</span>
@@ -972,7 +996,7 @@ export default function App() {
                         <span className="text-indigo-500 font-bold">●</span> Social proof target
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
 
                 <ResultsTable 
