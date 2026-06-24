@@ -24,7 +24,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Business, SavedBusiness, SearchHistory, ActiveUser, UserSubscription, SubscriptionTier } from './types';
 import Header from './components/Header';
 import ResultsTable from './components/ResultsTable';
-import SearchMap from './components/SearchMap';
 import BusinessModal from './components/BusinessModal';
 import Footer from './components/Footer';
 import { generateMockLeads } from './services/leadsMock';
@@ -232,7 +231,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [lastCitySearched, setLastCitySearched] = useState('Seattle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [searchLayout, setSearchLayout] = useState<'both' | 'map' | 'list'>('list');
 
   // UI inspection items
   const [selectedLead, setSelectedLead] = useState<Business | null>(null);
@@ -977,59 +975,15 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Dynamic Layout / View Mode Slider tabs */}
-                {leads.length > 0 && !isLoading && (
-                  <div className="flex border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 p-1.5 rounded-2xl items-center self-start gap-1 justify-start max-w-fit shadow-xs">
-                    <button 
-                      onClick={() => setSearchLayout('list')}
-                      className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center space-x-1.5 ${searchLayout === 'list' ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-850' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                    >
-                      <span>Leads List</span>
-                    </button>
-                    <button 
-                      onClick={() => setSearchLayout('map')}
-                      className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center space-x-1.5 ${searchLayout === 'map' ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-850' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                    >
-                      <span>Map Tracker</span>
-                    </button>
-                    <button 
-                      onClick={() => setSearchLayout('both')}
-                      className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center space-x-1.5 ${searchLayout === 'both' ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-100 dark:border-slate-850' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                    >
-                      <span>Split Screen</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Conditional Geo Discovery & Table displays */}
-                {leads.length > 0 && !isLoading && (searchLayout === 'both' || searchLayout === 'map') && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <SearchMap 
-                      leads={processedLeads}
-                      savedLeads={savedLeads}
-                      onSaveLead={handleSaveLead}
-                      onRemoveLead={handleRemoveLead}
-                      onSelectLead={setSelectedLead}
-                      citySearched={lastCitySearched}
-                    />
-                  </motion.div>
-                )}
-
-                {(searchLayout === 'both' || searchLayout === 'list' || isLoading || leads.length === 0) && (
-                  <ResultsTable 
-                    leads={processedLeads}
-                    savedLeads={savedLeads}
-                    onSaveLead={handleSaveLead}
-                    onRemoveLead={handleRemoveLead}
-                    onSelectLead={setSelectedLead}
-                    isLoading={isLoading}
-                    citySearched={lastCitySearched}
-                  />
-                )}
+                <ResultsTable 
+                  leads={processedLeads}
+                  savedLeads={savedLeads}
+                  onSaveLead={handleSaveLead}
+                  onRemoveLead={handleRemoveLead}
+                  onSelectLead={setSelectedLead}
+                  isLoading={isLoading}
+                  citySearched={lastCitySearched}
+                />
 
                 {/* Bottom analytics & logs grid */}
                 {searchHistory.length > 0 && (
