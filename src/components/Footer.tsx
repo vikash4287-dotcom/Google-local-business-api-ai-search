@@ -10,9 +10,10 @@ interface FooterProps {
     keyPlaceholder: string;
   };
   firebaseConnected: boolean;
+  onNavigate?: (path: string) => void;
 }
 
-export default function Footer({ activeModal, setActiveModal, googleMapsStatus, firebaseConnected }: FooterProps) {
+export default function Footer({ activeModal, setActiveModal, googleMapsStatus, firebaseConnected, onNavigate }: FooterProps) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -59,7 +60,13 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
               <ul className="space-y-2 text-xs font-semibold">
                 <li>
                   <button
-                    onClick={() => setActiveModal('privacy')}
+                    onClick={() => {
+                      if (onNavigate) {
+                        onNavigate('/privacy-policy');
+                      } else {
+                        setActiveModal('privacy');
+                      }
+                    }}
                     className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
                   >
                     <Shield className="w-3.5 h-3.5" />
@@ -68,7 +75,13 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
                 </li>
                 <li>
                   <button
-                    onClick={() => setActiveModal('terms')}
+                    onClick={() => {
+                      if (onNavigate) {
+                        onNavigate('/terms-of-service');
+                      } else {
+                        setActiveModal('terms');
+                      }
+                    }}
                     className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
                   >
                     <FileText className="w-3.5 h-3.5" />

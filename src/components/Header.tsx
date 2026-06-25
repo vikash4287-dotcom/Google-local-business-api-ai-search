@@ -31,6 +31,7 @@ interface HeaderProps {
   activeTab: 'search' | 'saved';
   setActiveTab: (tab: 'search' | 'saved') => void;
   savedCount: number;
+  onNavigate?: (path: string) => void;
 }
 
 export default function Header({
@@ -45,7 +46,8 @@ export default function Header({
   onOpenAuth,
   activeTab,
   setActiveTab,
-  savedCount
+  savedCount,
+  onNavigate
 }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -84,7 +86,11 @@ export default function Header({
   return (
     <header className="flex items-center justify-between h-16 px-4 border-b bg-white border-slate-200 text-slate-800 dark:bg-slate-950 dark:border-slate-885 dark:text-slate-100 md:px-8">
       {/* Brand logo (Persistent and beautifully detailed) */}
-      <div className="flex items-center space-x-2.5 mt-0.5">
+      <div 
+        onClick={() => onNavigate?.('/')}
+        className="flex items-center space-x-2.5 mt-0.5 cursor-pointer hover:opacity-90 active:scale-98 transition-all"
+        title="Go to Home"
+      >
         <div className="flex items-center justify-center w-8.5 h-8.5 rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/20 shrink-0">
           <Sparkles className="w-4.5 h-4.5 animate-pulse" />
         </div>

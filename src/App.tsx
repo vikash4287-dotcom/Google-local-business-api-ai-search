@@ -23,6 +23,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Business, SavedBusiness, SearchHistory, ActiveUser, UserSubscription, SubscriptionTier } from './types';
 import Header from './components/Header';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfService from './components/TermsOfService';
 import ResultsTable from './components/ResultsTable';
 import BusinessModal from './components/BusinessModal';
 import Footer from './components/Footer';
@@ -64,6 +66,22 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'search' | 'saved'>('search');
   const [activeFooterModal, setActiveFooterModal] = useState<'privacy' | 'terms' | 'about' | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname);
+
+  // Popstate event handler for browser back/forward routing
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateTo = (path: string) => {
+    window.history.pushState(null, '', path);
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Core CRM data structures states
   const [user, setUser] = useState<ActiveUser>({ id: '', email: 'vikash4287@gmail.com', createdAt: '' });
@@ -552,14 +570,21 @@ export default function App() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           savedCount={savedLeads.length}
+          onNavigate={navigateTo}
         />
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-          <AnimatePresence mode="wait">
-            {activeTab === 'search' && (
-              <motion.div
-                key="search-tab"
-                initial={{ opacity: 0, y: 15 }}
+          {currentPath === '/privacy-policy' ? (
+            <PrivacyPolicy onBackToHome={() => navigateTo('/')} />
+          ) : currentPath === '/terms-of-service' ? (
+            <TermsOfService onBackToHome={() => navigateTo('/')} />
+          ) : (
+            <>
+              <AnimatePresence mode="wait">
+                {activeTab === 'search' && (
+                  <motion.div
+                    key="search-tab"
+                    initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.2 }}
@@ -1245,6 +1270,8 @@ export default function App() {
           </AnimatePresence>
           <PricingSection subscription={subscription} onSubscriptionUpdate={setSubscription} />
           <FAQSection />
+            </>
+          )}
           <Footer 
             activeModal={activeFooterModal}
             setActiveModal={setActiveFooterModal}
@@ -1253,6 +1280,7 @@ export default function App() {
               keyPlaceholder: MAPS_KEY
             }}
             firebaseConnected={firebaseConnected}
+            onNavigate={navigateTo}
           />
         </main>
       </div>
