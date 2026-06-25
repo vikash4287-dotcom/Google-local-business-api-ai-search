@@ -255,6 +255,108 @@ export default function App() {
   // UI inspection items
   const [selectedLead, setSelectedLead] = useState<Business | null>(null);
 
+  // Dynamic Open Graph & Twitter Card Meta Tags Injection for selected business lead
+  useEffect(() => {
+    const updateMetaTag = (id: string, attribute: string, attrVal: string, contentKey: string, contentVal: string) => {
+      let element = document.getElementById(id);
+      if (!element) {
+        element = document.querySelector(`meta[${attribute}="${attrVal}"]`);
+      }
+      if (element) {
+        element.setAttribute(contentKey, contentVal);
+      } else {
+        const meta = document.createElement('meta');
+        if (id) meta.id = id;
+        meta.setAttribute(attribute, attrVal);
+        meta.setAttribute(contentKey, contentVal);
+        document.head.appendChild(meta);
+      }
+    };
+
+    if (selectedLead) {
+      const leadName = selectedLead.name;
+      const leadCity = selectedLead.city || 'local';
+      const leadCategory = selectedLead.category || 'Business';
+      const leadRating = selectedLead.rating ? `${selectedLead.rating.toFixed(1)}⭐` : 'N/A';
+      const leadReviews = selectedLead.reviewCount !== undefined ? `${selectedLead.reviewCount} reviews` : '0 reviews';
+      const hasWeb = selectedLead.website ? `Website: ${selectedLead.website}` : 'No website detected';
+
+      const title = `${leadName} - ${leadCategory} in ${leadCity} | LocalShopAI`;
+      const description = `Discover growth opportunities for ${leadName} in ${leadCity}. Rating: ${leadRating} (${leadReviews}). ${hasWeb}. Analyze local profiles with LocalShopAI.`;
+      const url = `https://localshopai.com/?lead=${encodeURIComponent(leadName)}`;
+      const image = `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80`;
+
+      // Update Page Title dynamically
+      document.title = title;
+
+      // Update OG Tags
+      updateMetaTag('og-type', 'property', 'og:type', 'content', 'business.business');
+      updateMetaTag('og-url', 'property', 'og:url', 'content', url);
+      updateMetaTag('og-title', 'property', 'og:title', 'content', title);
+      updateMetaTag('og-description', 'property', 'og:description', 'content', description);
+      updateMetaTag('og-image', 'property', 'og:image', 'content', image);
+
+      // Update Twitter Tags
+      updateMetaTag('twitter-card', 'name', 'twitter:card', 'content', 'summary_large_image');
+      updateMetaTag('twitter-url', 'name', 'twitter:url', 'content', url);
+      updateMetaTag('twitter-title', 'name', 'twitter:title', 'content', title);
+      updateMetaTag('twitter-description', 'name', 'twitter:description', 'content', description);
+      updateMetaTag('twitter-image', 'name', 'twitter:image', 'content', image);
+    } else {
+      // Revert to Homepage Defaults
+      const defaultTitle = 'LocalShopAI — Find Local Business Leads for SEO & Web Agencies';
+      const defaultDesc = 'LocalShopAI helps SEO agencies, web designers, freelancers, and marketers find local businesses with poor websites, low reviews, or weak online presence—so they can turn them into clients.';
+      const defaultUrl = 'https://localshopai.com/';
+      const defaultImage = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80';
+
+      document.title = defaultTitle;
+
+      updateMetaTag('og-type', 'property', 'og:type', 'content', 'website');
+      updateMetaTag('og-url', 'property', 'og:url', 'content', defaultUrl);
+      updateMetaTag('og-title', 'property', 'og:title', 'content', defaultTitle);
+      updateMetaTag('og-description', 'property', 'og:description', 'content', defaultDesc);
+      updateMetaTag('og-image', 'property', 'og:image', 'content', defaultImage);
+
+      updateMetaTag('twitter-card', 'name', 'twitter:card', 'content', 'summary_large_image');
+      updateMetaTag('twitter-url', 'name', 'twitter:url', 'content', defaultUrl);
+      updateMetaTag('twitter-title', 'name', 'twitter:title', 'content', defaultTitle);
+      updateMetaTag('twitter-description', 'name', 'twitter:description', 'content', defaultDesc);
+      updateMetaTag('twitter-image', 'name', 'twitter:image', 'content', defaultImage);
+    }
+  }, [selectedLead]);
+
+  // Dynamic robots noindex injection for private/utility paths to optimize search crawling
+  useEffect(() => {
+    const noindexPaths = [
+      '/login',
+      '/signup',
+      '/dashboard',
+      '/saved-leads',
+      '/account',
+      '/settings'
+    ];
+
+    const normalizedPath = currentPath.toLowerCase().trim();
+    const isNoIndex = noindexPaths.some(path => {
+      return normalizedPath === path || normalizedPath.startsWith(path + '/');
+    });
+
+    let robotsMeta = document.querySelector('meta[name="robots"]');
+
+    if (isNoIndex) {
+      if (!robotsMeta) {
+        robotsMeta = document.createElement('meta');
+        robotsMeta.setAttribute('name', 'robots');
+        document.head.appendChild(robotsMeta);
+      }
+      robotsMeta.setAttribute('content', 'noindex');
+    } else {
+      if (robotsMeta) {
+        robotsMeta.remove();
+      }
+    }
+  }, [currentPath]);
+
   // Configuration indicators
   const MAPS_KEY = process.env.GOOGLE_MAPS_PLATFORM_KEY || '';
   const isRealGoogleMapsKey = (key: string): boolean => {
