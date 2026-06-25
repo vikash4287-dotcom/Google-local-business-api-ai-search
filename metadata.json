@@ -1,6 +1,6 @@
 {
-  "name": "LocalShop AI",
-  "description": "A modern SaaS application for discovering local business leads needing web, marketing, and SEO services.",
+  "name": "LocalShopAI",
+  "description": "LocalShopAI helps SEO agencies, web designers, freelancers, and marketers find local businesses with poor websites, low reviews, or weak online presence—so they can turn them into clients.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

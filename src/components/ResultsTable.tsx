@@ -83,6 +83,52 @@ export default function ResultsTable({
 
   const totalPages = Math.ceil(processedLeads.length / itemsPerPage);
 
+  // Dynamic JSON-LD Schema for Search Results to support rich snippets
+  const schemaJsonLd = useMemo(() => {
+    if (!leads || leads.length === 0) return null;
+    return {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "numberOfItems": leads.length,
+      "name": `Business Leads in ${citySearched}`,
+      "itemListElement": leads.map((lead, index) => {
+        const item: any = {
+          "@type": "LocalBusiness",
+          "name": lead.name,
+          "category": lead.category,
+        };
+        if (lead.address) {
+          item.address = {
+            "@type": "PostalAddress",
+            "streetAddress": lead.address,
+            "addressLocality": lead.city,
+          };
+        }
+        if (lead.phone) {
+          item.telephone = lead.phone;
+        }
+        if (lead.website) {
+          item.url = lead.website;
+        }
+        if (lead.rating !== undefined) {
+          item.aggregateRating = {
+            "@type": "AggregateRating",
+            "ratingValue": lead.rating,
+            "ratingCount": lead.reviewCount || 0,
+            "reviewCount": lead.reviewCount || 0,
+            "bestRating": "5",
+            "worstRating": "1"
+          };
+        }
+        return {
+          "@type": "ListItem",
+          "position": index + 1,
+          "item": item
+        };
+      })
+    };
+  }, [leads, citySearched]);
+
   // Sorting Handler
   const handleSort = (field: 'rating' | 'reviewCount') => {
     if (sortField === field) {
@@ -151,6 +197,11 @@ export default function ResultsTable({
 
   return (
     <div className="space-y-4">
+      {schemaJsonLd && (
+        <script type="application/ld+json">
+          {JSON.stringify(schemaJsonLd)}
+        </script>
+      )}
       {/* Table Action Controls */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-50 border border-slate-150 p-4 rounded-xl dark:bg-slate-900/60 dark:border-slate-800 gap-4">
         <div>

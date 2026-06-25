@@ -557,6 +557,22 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "LocalShopAI",
+          "url": "https://localshopai.com",
+          "description": "LocalShopAI helps SEO agencies, web designers, freelancers, and marketers find local businesses with poor websites, low reviews, or weak online presence—so they can turn them into clients.",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "All",
+          "offers": {
+            "@type": "Offer",
+            "price": "0.00",
+            "priceCurrency": "USD"
+          }
+        })}
+      </script>
       {/* Main Core Frame - Uses full screen seamlessly */}
       <div className="flex flex-col flex-1 min-w-0">
         <Header 

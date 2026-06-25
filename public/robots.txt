@@ -1,0 +1,13 @@
+User-agent: *
+Disallow: /app
+Disallow: /dashboard
+Disallow: /saved-leads
+Disallow: /account
+Disallow: /settings
+Disallow: /login
+Disallow: /signup
+Disallow: /api
+Disallow: /admin
+Disallow: /sandbox
+
+Sitemap: https://localshopai.com/sitemap.xml
