@@ -38,6 +38,8 @@ import PipelineStats from './components/PipelineStats';
 import SearchCategoryChart from './components/SearchCategoryChart';
 import FAQSection from './components/FAQSection';
 import PricingSection from './components/PricingSection';
+import AgenciesSection from './components/AgenciesSection';
+import Hero from './components/Hero';
 import UpgradeModal from './components/UpgradeModal';
 import AuthPage from './components/AuthPage';
 import { calculateLeadScore } from './utils/score';
@@ -590,44 +592,26 @@ export default function App() {
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
-                {/* Hero block - 60% reduced height, premium minimal look */}
-                <div className="relative overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-850 bg-gradient-to-br from-indigo-50/30 via-white to-indigo-50/10 dark:from-indigo-950/10 dark:via-slate-950/40 dark:to-slate-950/60 px-6 py-6 md:py-8 text-center max-w-4xl mx-auto shadow-xs">
-                  {/* Watermark Statue of Liberty overlay */}
-                  <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.08] pointer-events-none select-none">
-                    <img
-                      src="https://images.unsplash.com/photo-1501594907352-04cda38ebc29?q=80&w=1200&auto=format&fit=crop"
-                      alt="Statue of Liberty"
-                      className="w-full h-full object-cover object-center mix-blend-luminosity select-none animate-fade-in"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-
-                  <div className="relative z-10 space-y-2.5 max-w-2xl mx-auto animate-in fade-in duration-300">
-                    <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white font-sans flex items-center justify-center gap-2">
-                      <span>Find Businesses That Need Your Services</span>
-                      <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse hidden sm:inline-block" />
-                    </h1>
-                    <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xl mx-auto">
-                      Discover local businesses with weak websites, low reviews, poor ratings and untapped growth opportunities.
-                    </p>
-                    
-                    {/* Trust Badges Row */}
-                    <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-1.5 text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-450">
-                      <span className="flex items-center gap-1">
-                        <span className="text-emerald-500 font-bold">✓</span> AI Powered Analysis
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="text-emerald-500 font-bold">✓</span> Proposal Generator
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="text-emerald-500 font-bold">✓</span> Lead Discovery
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="text-emerald-500 font-bold">✓</span> Website Audit
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <Hero
+                  isAuthenticated={!!(user && user.email)}
+                  onStartFree={() => {
+                    const isAuthed = !!(user && user.email);
+                    if (!isAuthed) {
+                      setActiveAuthModal('signup');
+                    } else {
+                      const el = document.getElementById('search-hub');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }
+                  }}
+                  onSeeHowItWorks={() => {
+                    const el = document.getElementById('agencies-section');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                />
 
                 {errorMessage && (
                   <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-700 dark:text-amber-400 text-xs font-semibold flex items-center space-x-2">
@@ -637,7 +621,7 @@ export default function App() {
                 )}
 
                 {/* Filters/Search Hub card redesigned to a modern high-density single row */}
-                <div className="p-5 bg-white border border-slate-200 rounded-2xl dark:border-slate-850 dark:bg-slate-950/70 shadow-xs space-y-4">
+                <div id="search-hub" className="p-5 bg-white border border-slate-200 rounded-2xl dark:border-slate-850 dark:bg-slate-950/70 shadow-xs space-y-4 scroll-mt-24">
                   <div className="flex flex-col gap-3.5 lg:flex-row lg:items-end">
                     
                     {/* Country select */}
@@ -1268,6 +1252,7 @@ export default function App() {
             )}
 
           </AnimatePresence>
+          <AgenciesSection />
           <PricingSection subscription={subscription} onSubscriptionUpdate={setSubscription} />
           <FAQSection />
             </>
