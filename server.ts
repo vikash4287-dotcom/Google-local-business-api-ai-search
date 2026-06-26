@@ -576,8 +576,19 @@ You must return a cohesive JSON object conforming strictly to this format:
 
       // Proxy request to Render backend to use real credentials and keys
       const targetUrl = `https://google-local-business-api-ai-search.onrender.com/api/create-order?amount=${amount}&currency=${currency}&receipt=${encodeURIComponent(receipt as string)}`;
+      console.log('Proxying create-order request to Render:', targetUrl);
+      
       const response = await fetch(targetUrl);
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log('Render create-order response status:', response.status);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', responseText);
+        throw new Error(`Render backend returned non-JSON response (Status ${response.status}): ${responseText.substring(0, 100)}`);
+      }
       
       if (!response.ok) {
         return res.status(response.status).json(data);
@@ -585,7 +596,16 @@ You must return a cohesive JSON object conforming strictly to this format:
       res.json(data);
     } catch (error: any) {
       console.error('Razorpay Order Creation Error:', error);
-      res.status(500).json({ error: error.message || 'Failed to create Razorpay order' });
+      // Write error to a log file for diagnostics
+      fs.writeFileSync('razorpay_error.log', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        stack: error.stack
+      }, null, 2));
+      res.status(500).json({ 
+        error: error.message || 'Failed to create Razorpay order',
+        details: error.stack 
+      });
     }
   });
 
@@ -600,6 +620,8 @@ You must return a cohesive JSON object conforming strictly to this format:
 
       // Proxy verification request to Render backend to use real credentials and keys
       const targetUrl = 'https://google-local-business-api-ai-search.onrender.com/api/verify-payment';
+      console.log('Proxying verify-payment request to Render:', targetUrl);
+      
       const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
@@ -607,7 +629,16 @@ You must return a cohesive JSON object conforming strictly to this format:
         },
         body: JSON.stringify(req.body)
       });
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log('Render verify-payment response status:', response.status);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse verify response as JSON:', responseText);
+        throw new Error(`Render backend returned non-JSON response for verify (Status ${response.status}): ${responseText.substring(0, 100)}`);
+      }
 
       if (!response.ok) {
         return res.status(response.status).json(data);
@@ -615,7 +646,15 @@ You must return a cohesive JSON object conforming strictly to this format:
       res.json(data);
     } catch (error: any) {
       console.error('Razorpay Payment Verification Error:', error);
-      res.status(500).json({ error: error.message || 'Failed to verify payment signature' });
+      fs.writeFileSync('razorpay_verify_error.log', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        stack: error.stack
+      }, null, 2));
+      res.status(500).json({ 
+        error: error.message || 'Failed to verify payment signature',
+        details: error.stack
+      });
     }
   });
 
