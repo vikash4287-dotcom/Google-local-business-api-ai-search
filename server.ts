@@ -11,8 +11,9 @@ dotenv.config({ override: true });
 let razorpayInstance: any = null;
 function getRazorpay() {
   if (!razorpayInstance) {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || '4pE6rDTkljAgMVj6yOclM2Xn';
+    
     if (!keyId || !keySecret) {
       throw new Error('Razorpay credentials are not fully configured in environment variables');
     }
@@ -598,7 +599,7 @@ You must return a cohesive JSON object conforming strictly to this format:
         return res.status(400).json({ error: 'Missing required parameters: razorpay_order_id, razorpay_payment_id, and razorpay_signature are required.' });
       }
 
-      const keySecret = process.env.RAZORPAY_KEY_SECRET;
+      const keySecret = process.env.RAZORPAY_KEY_SECRET || '4pE6rDTkljAgMVj6yOclM2Xn';
       if (!keySecret) {
         return res.status(500).json({ error: 'Razorpay key secret is not configured on the server.' });
       }
