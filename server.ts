@@ -5,6 +5,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
+import fs from 'fs';
 
 dotenv.config({ override: true });
 
@@ -31,6 +32,12 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // Logging middleware to inspect incoming traffic
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
 
   // API endpoint for AI Pitch Generation
   app.post('/api/generate-pitch', async (req, res) => {

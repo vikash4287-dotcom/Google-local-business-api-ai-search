@@ -152,7 +152,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
         throw new Error('Invalid response from payment order creator');
       }
 
-      const keyId = (import.meta as any).env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
+      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
 
       // 2. Open official Razorpay Checkout Modal
       const options = {
