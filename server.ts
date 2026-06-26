@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 let razorpayInstance: any = null;
 function getRazorpay() {
