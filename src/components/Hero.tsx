@@ -54,22 +54,28 @@ export default function Hero({ isAuthenticated, onStartFree, onSeeHowItWorks }: 
         </p>
 
         {/* Dual Conversion-Focused CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 max-w-md mx-auto sm:max-w-none">
-          <button
-            onClick={onStartFree}
-            className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/35 flex items-center justify-center gap-2 cursor-pointer group"
-          >
-            <span>{isAuthenticated ? 'Scan Local Leads Now' : 'Start Free and Scan'}</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
+        <div className="flex flex-col items-center justify-center gap-3.5 mb-16 max-w-md mx-auto sm:max-w-none">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+            <button
+              onClick={onStartFree}
+              className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/35 flex items-center justify-center gap-2 cursor-pointer group"
+            >
+              <span>{isAuthenticated ? 'Scan Local Leads Now' : 'Start Free and Scan'}</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+            
+            <button
+              onClick={onSeeHowItWorks}
+              className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-850 active:scale-98 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 text-slate-400 fill-current" />
+              <span>See How It Works</span>
+            </button>
+          </div>
           
-          <button
-            onClick={onSeeHowItWorks}
-            className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-850 active:scale-98 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Play className="w-3.5 h-3.5 text-slate-400 fill-current" />
-            <span>See How It Works</span>
-          </button>
+          <p className="text-xs text-slate-500 dark:text-slate-450 font-semibold tracking-wide">
+            Start for free. No Credit card required.
+          </p>
         </div>
 
         {/* Modern Trust Badge Strip below */}

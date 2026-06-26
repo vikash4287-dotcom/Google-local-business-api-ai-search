@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, FileText, Shield, Info, X, HelpCircle, Database } from 'lucide-react';
+import { Sparkles, FileText, Shield, Info, X, HelpCircle, Database, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface FooterProps {
@@ -50,6 +50,15 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
                     <Info className="w-3.5 h-3.5" />
                     <span>About Us</span>
                   </button>
+                </li>
+                <li>
+                  <a
+                    href="mailto:hello@localshopai.com"
+                    className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Connect with us</span>
+                  </a>
                 </li>
               </ul>
             </div>
