@@ -247,6 +247,17 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
               key={p.tier}
               className={`p-6 sm:p-8 rounded-2xl border bg-white dark:bg-slate-950/40 relative flex flex-col justify-between h-full transition-all shadow-xs ${p.accent} ${isCurrent ? 'ring-4 ring-indigo-500/15 dark:ring-indigo-400/15' : ''}`}
             >
+              {(p.tier === 'Starter' || p.tier === 'Agency') && (
+                <div className="absolute inset-0 bg-white/80 dark:bg-slate-950/90 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-20 p-6 text-center select-none">
+                  <div className="bg-indigo-600 text-white dark:bg-indigo-500 px-4 py-2 rounded-xl shadow-lg border border-indigo-500/30 transform -rotate-3 hover:rotate-0 transition-all duration-250">
+                    <span className="text-sm font-black tracking-wider uppercase">Beta (Coming Soon)</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-3.5 max-w-[220px] leading-relaxed">
+                    Billing integration is currently undergoing maintenance.
+                  </p>
+                </div>
+              )}
+
               {isCurrent && (
                 <span className="absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white shadow-sm flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />

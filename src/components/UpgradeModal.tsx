@@ -194,7 +194,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
         </div>
 
         {/* Right Side: Simple Payments Forms */}
-        <div className="p-6 md:p-8 flex-1 flex flex-col justify-between overflow-y-auto max-h-[500px] md:max-h-full">
+        <div className="p-6 md:p-8 flex-1 flex flex-col justify-between overflow-y-auto max-h-[500px] md:max-h-full relative">
           {/* Header Close check */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-900">
             <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Checkout</h4>
@@ -204,6 +204,16 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
             >
               <X className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* Translucent Cover overlay for maintenance */}
+          <div className="absolute inset-x-0 bottom-0 top-[60px] bg-white/80 dark:bg-slate-950/90 backdrop-blur-[2px] flex flex-col items-center justify-center z-20 p-6 text-center select-none">
+            <div className="bg-indigo-600 text-white dark:bg-indigo-500 px-4 py-2 rounded-xl shadow-lg border border-indigo-500/30 transform -rotate-3 hover:rotate-0 transition-all duration-250">
+              <span className="text-sm font-black tracking-wider uppercase">Beta (Coming Soon)</span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-3.5 max-w-[220px] leading-relaxed">
+              Billing integration is currently undergoing maintenance.
+            </p>
           </div>
 
           {paymentSuccess ? (
