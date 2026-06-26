@@ -3,8 +3,27 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
 
 dotenv.config();
+
+let razorpayInstance: any = null;
+function getRazorpay() {
+  if (!razorpayInstance) {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keyId || !keySecret) {
+      throw new Error('Razorpay credentials are not fully configured in environment variables');
+    }
+    // @ts-ignore
+    razorpayInstance = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
+  }
+  return razorpayInstance;
+}
 
 async function startServer() {
   const app = express();
@@ -533,6 +552,70 @@ You must return a cohesive JSON object conforming strictly to this format:
     } catch (error: any) {
       console.error('Gemini Service Packages Architect backend error:', error);
       res.status(500).json({ error: error.message || 'Failed to utilize Gemini model to draft customized service packages.' });
+    }
+  });
+
+  // Razorpay Create Order Endpoint
+  app.post('/api/create-order', async (req, res) => {
+    try {
+      const { amount, currency = 'INR', receipt = 'receipt_order_1' } = req.body;
+      
+      if (!amount) {
+        return res.status(400).json({ error: 'Amount is required.' });
+      }
+
+      const parsedAmount = parseInt(amount, 10);
+      if (isNaN(parsedAmount) || parsedAmount < 100) {
+        return res.status(400).json({ error: 'Minimum amount must be at least 100 paise (1 INR).' });
+      }
+
+      const razorpay = getRazorpay();
+      const options = {
+        amount: parsedAmount,
+        currency,
+        receipt,
+      };
+
+      const order = await razorpay.orders.create(options);
+      res.json({
+        success: true,
+        order_id: order.id,
+        amount: order.amount,
+        currency: order.currency
+      });
+    } catch (error: any) {
+      console.error('Razorpay Order Creation Error:', error);
+      res.status(500).json({ error: error.message || 'Failed to create Razorpay order' });
+    }
+  });
+
+  // Razorpay Verify Signature Endpoint
+  app.post('/api/verify-payment', async (req, res) => {
+    try {
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        return res.status(400).json({ error: 'Missing required parameters: razorpay_order_id, razorpay_payment_id, and razorpay_signature are required.' });
+      }
+
+      const keySecret = process.env.RAZORPAY_KEY_SECRET;
+      if (!keySecret) {
+        return res.status(500).json({ error: 'Razorpay key secret is not configured on the server.' });
+      }
+
+      const generatedSignature = crypto
+        .createHmac('sha256', keySecret)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest('hex');
+
+      if (generatedSignature === razorpay_signature) {
+        res.json({ success: true, message: 'Payment verified successfully.' });
+      } else {
+        res.status(400).json({ success: false, error: 'Signature mismatch. Potential fraud detected.' });
+      }
+    } catch (error: any) {
+      console.error('Razorpay Payment Verification Error:', error);
+      res.status(500).json({ error: error.message || 'Failed to verify payment signature' });
     }
   });
 

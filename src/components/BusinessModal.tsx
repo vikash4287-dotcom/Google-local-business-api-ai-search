@@ -15,7 +15,11 @@ import {
   Building,
   Target,
   Award,
-  Lock
+  Lock,
+  RefreshCw,
+  Settings,
+  User,
+  Briefcase
 } from 'lucide-react';
 import { Business } from '../types';
 import AIPitchModal from './AIPitchModal';
@@ -46,6 +50,174 @@ export default function BusinessModal({
   const [websiteAudit, setWebsiteAudit] = useState<any | null>(null);
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
+
+  // Customizable Cold Outreach Email States
+  const [senderName, setSenderName] = useState(() => localStorage.getItem('outreach_sender_name') || 'Alex');
+  const [agencyName, setAgencyName] = useState(() => localStorage.getItem('outreach_agency_name') || 'Local Growth Agency');
+  const [outreachTone, setOutreachTone] = useState<'professional' | 'casual' | 'direct'>(() => {
+    return (localStorage.getItem('outreach_tone') as any) || 'professional';
+  });
+
+  const [selectedGaps, setSelectedGaps] = useState({
+    noWebsite: false,
+    lowReviews: false,
+    poorRating: false,
+  });
+
+  const [customSubject, setCustomSubject] = useState('');
+  const [customBody, setCustomBody] = useState('');
+  const [isManualEdit, setIsManualEdit] = useState(false);
+
+  // Sync gaps when lead changes
+  React.useEffect(() => {
+    if (!lead) return;
+    setSelectedGaps({
+      noWebsite: !lead.website,
+      lowReviews: (lead.reviewCount || 0) < 30,
+      poorRating: (lead.rating || 0) < 4.2,
+    });
+    setIsManualEdit(false);
+  }, [lead?.id]);
+
+  const handleSenderNameChange = (val: string) => {
+    setSenderName(val);
+    localStorage.setItem('outreach_sender_name', val);
+  };
+
+  const handleAgencyNameChange = (val: string) => {
+    setAgencyName(val);
+    localStorage.setItem('outreach_agency_name', val);
+  };
+
+  const handleOutreachToneChange = (val: 'professional' | 'casual' | 'direct') => {
+    setOutreachTone(val);
+    localStorage.setItem('outreach_tone', val);
+  };
+
+  const generateDynamicEmail = (
+    nameVal: string,
+    agencyVal: string,
+    toneVal: string,
+    gapsVal: { noWebsite: boolean; lowReviews: boolean; poorRating: boolean }
+  ) => {
+    if (!lead) return { subject: '', body: '' };
+    const leadRating = lead.rating || 0;
+    const leadReviewCount = lead.reviewCount || 0;
+    
+    let subject = '';
+    let body = '';
+
+    // Generate Subject Line
+    if (toneVal === 'direct') {
+      if (gapsVal.noWebsite) {
+        subject = `Grow your business: Website for ${lead.name}`;
+      } else if (gapsVal.poorRating || gapsVal.lowReviews) {
+        subject = `GMB optimization & reviews for ${lead.name}`;
+      } else {
+        subject = `Quick growth idea for ${lead.name}`;
+      }
+    } else if (toneVal === 'casual') {
+      if (gapsVal.noWebsite) {
+        subject = `Quick question about the website for ${lead.name}`;
+      } else if (gapsVal.poorRating || gapsVal.lowReviews) {
+        subject = `Quick question regarding ${lead.name}'s Google reviews`;
+      } else {
+        subject = `Ideas for ${lead.name}`;
+      }
+    } else { // professional
+      if (gapsVal.noWebsite) {
+        subject = `Digital expansion and web optimization for ${lead.name}`;
+      } else if (gapsVal.poorRating || gapsVal.lowReviews) {
+        subject = `GMB search reputation review for ${lead.name}`;
+      } else {
+        subject = `Growth strategy partnership - ${lead.name}`;
+      }
+    }
+
+    // Generate Body
+    if (toneVal === 'direct') {
+      body += `Hi team at ${lead.name},\n\n`;
+      body += `I’ll keep this brief. I was looking up local businesses in ${lead.city} and came across ${lead.name}.\n\n`;
+      
+      let gapParagraphs = [];
+      if (gapsVal.noWebsite) {
+        gapParagraphs.push(`- Website: I noticed you don't have a website listed on Google. We can design a high-converting landing page to bring you direct customers.`);
+      }
+      if (gapsVal.poorRating) {
+        gapParagraphs.push(`- Google Reviews: Your current Google rating is sitting at ${leadRating}★. Most potential clients skip any business below 4.3★. We can help you raise this to secure more local bookings.`);
+      } else if (gapsVal.lowReviews) {
+        gapParagraphs.push(`- Review Volume: You only have ${leadReviewCount} Google reviews. Boosting your review count will rank you higher in local search results.`);
+      }
+
+      if (gapParagraphs.length > 0) {
+        body += `We identified a couple of quick improvements that can help you win more clients in ${lead.city}:\n\n` + gapParagraphs.join('\n') + `\n\n`;
+      } else {
+        body += `You have fantastic ratings! We would love to run hyper-targeted local campaigns using your stellar record to double your client bookings.\n\n`;
+      }
+
+      body += `Are you free for a quick 5-minute call this Thursday to discuss?\n\n`;
+      body += `Best,\n\n${nameVal}\n${agencyVal}`;
+    } else if (toneVal === 'casual') {
+      body += `Hi there,\n\n`;
+      body += `Hope you're having a great week! I was browsing through some local ${lead.category.toLowerCase()} offices in ${lead.city} and found ${lead.name}.\n\n`;
+
+      if (gapsVal.noWebsite) {
+        body += `I couldn't find a website link for you guys online. I was wondering if you primarily rely on word-of-mouth, or if you've been meaning to set up a clean, simple site? We build beautiful, modern websites for ${lead.category.toLowerCase()} businesses that practically pay for themselves by bringing in local searchers.\n\n`;
+      } else if (gapsVal.poorRating) {
+        body += `I noticed you have a solid business, but your Google listing is around ${leadRating} Stars. Since people often filter out places below 4.3 stars, you might be missing out on customers. We help businesses easily gather more happy reviews from their clients.\n\n`;
+      } else if (gapsVal.lowReviews) {
+        body += `I noticed you guys have an awesome rating of ${leadRating} ★, but only ${leadReviewCount} reviews! Since competitors with more reviews often steal the spotlight on search, we built a tool that helps local offices double their review count automatically.\n\n`;
+      } else {
+        body += `I noticed you guys have awesome reviews! We help premium services like yours run simple ads to turn that great reputation into steady bookings.\n\n`;
+      }
+
+      body += `Would you be open to a casual chat sometime soon? Just 5 minutes to see if we'd be a good fit to help you grow.\n\n`;
+      body += `Cheers,\n\n${nameVal}\n${agencyVal}`;
+    } else { // professional
+      body += `Dear Business Owner,\n\n`;
+      body += `I hope this email finds you well. My name is ${nameVal} from ${agencyVal}. We specialize in digital marketing and client acquisition for ${lead.category.toLowerCase()} businesses in the ${lead.city} region.\n\n`;
+      body += `While conducting a routine local search audit of ${lead.name}, our team identified a few digital presence gaps that may be hindering your local search visibility and conversion rates:\n\n`;
+
+      let bulletCount = 1;
+      if (gapsVal.noWebsite) {
+        body += `• Absence of a Dedicated Website: Establishing a professional web presence typically increases direct customer inquiries by up to 40% for ${lead.category.toLowerCase()} services.\n`;
+        bulletCount++;
+      }
+      if (gapsVal.poorRating) {
+        body += `• GMB Rating Deficit: At ${leadRating} Stars, your listing is currently sitting below the neighborhood threshold (4.3+ Stars), redirecting prospective clients to competitor listings.\n`;
+        bulletCount++;
+      } else if (gapsVal.lowReviews) {
+        body += `• Low Review Volume: Having only ${leadReviewCount} reviews makes it challenging to maintain premium placement in Google's Local 3-Pack.\n`;
+        bulletCount++;
+      }
+
+      if (bulletCount === 1) {
+        body += `• Digital Optimization: Although your current rating is highly competitive, there are active opportunities to leverage your strong reputation to drive targeted local ads.\n`;
+      }
+
+      body += `\nWe have developed a customized digital blueprint designed to address these exact areas and accelerate your growth.\n\n`;
+      body += `Could we schedule a brief, 5-minute call this coming Thursday to share these insights with you?\n\n`;
+      body += `Sincerely,\n\n${nameVal}\n${agencyVal}`;
+    }
+
+    return { subject, body };
+  };
+
+  // Sync subject and body when variables change, unless manual editing is active
+  React.useEffect(() => {
+    if (!lead || isManualEdit) return;
+    const { subject, body } = generateDynamicEmail(senderName, agencyName, outreachTone, selectedGaps);
+    setCustomSubject(subject);
+    setCustomBody(body);
+  }, [senderName, agencyName, outreachTone, selectedGaps.noWebsite, selectedGaps.lowReviews, selectedGaps.poorRating, lead?.id, isManualEdit]);
+
+  const handleResetTemplate = () => {
+    if (!lead) return;
+    setIsManualEdit(false);
+    const { subject, body } = generateDynamicEmail(senderName, agencyName, outreachTone, selectedGaps);
+    setCustomSubject(subject);
+    setCustomBody(body);
+  };
 
   React.useEffect(() => {
     if (!lead) return;
@@ -673,42 +845,232 @@ export default function BusinessModal({
           </div>
 
           {/* Cold Pitch Generator Section */}
-          <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Mail className="w-4.5 h-4.5 text-indigo-505" />
-                <span>Standard Template Outline (Fallback)</span>
-              </h4>
-              <div className="flex items-center space-x-2">
+          <div className="p-5 border border-slate-200 bg-slate-50/20 rounded-2xl dark:border-slate-800 dark:bg-slate-900/10 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-850 pb-3">
+              <div className="space-y-0.5">
+                <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <Mail className="w-4.5 h-4.5 text-indigo-500" />
+                  <span>Customizable Cold Outreach Template</span>
+                </h4>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">
+                  Tailored around business's specific marketing gaps and conversion goals
+                </p>
+              </div>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-100/30">
+                Interactive Composer
+              </span>
+            </div>
+
+            {/* Customization Options Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left Column: Personalization */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <User className="w-3 h-3" />
+                    <span>Your Name (Sender)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={senderName}
+                    onChange={(e) => handleSenderNameChange(e.target.value)}
+                    placeholder="E.g., Alex"
+                    className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-800 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <Briefcase className="w-3 h-3" />
+                    <span>Your Agency Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={agencyName}
+                    onChange={(e) => handleAgencyNameChange(e.target.value)}
+                    placeholder="E.g., Local Growth Partners"
+                    className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-800 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Tone & Gaps */}
+              <div className="space-y-3">
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <Settings className="w-3 h-3" />
+                    <span>Outreach Tone</span>
+                  </span>
+                  <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg">
+                    {(['professional', 'casual', 'direct'] as const).map((tone) => (
+                      <button
+                        key={tone}
+                        type="button"
+                        onClick={() => handleOutreachToneChange(tone)}
+                        className={`py-1 rounded-md text-xs font-semibold capitalize cursor-pointer transition-all ${
+                          outreachTone === tone
+                            ? 'bg-white shadow-xs text-indigo-650 dark:bg-slate-850 dark:text-indigo-400'
+                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+                        }`}
+                      >
+                        {tone}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">
+                    Target Deficits to Highlight
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {/* Website Checkbox */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGaps(prev => ({ ...prev, noWebsite: !prev.noWebsite }))}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        selectedGaps.noWebsite
+                          ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-405'
+                          : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 dark:bg-slate-950 dark:border-slate-800'
+                      }`}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedGaps.noWebsite} 
+                        onChange={() => {}} // Controlled by button click
+                        className="rounded-sm border-slate-300 text-rose-600 focus:ring-rose-500/20 w-3 h-3 pointer-events-none"
+                      />
+                      <span>No Website</span>
+                    </button>
+
+                    {/* Low Reviews Checkbox */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGaps(prev => ({ ...prev, lowReviews: !prev.lowReviews }))}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        selectedGaps.lowReviews
+                          ? 'bg-amber-50 border-amber-250 text-amber-700 dark:bg-amber-950/20 dark:border-amber-900/50 dark:text-amber-400'
+                          : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 dark:bg-slate-950 dark:border-slate-800'
+                      }`}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedGaps.lowReviews} 
+                        onChange={() => {}} // Controlled by button click
+                        className="rounded-sm border-slate-300 text-amber-600 focus:ring-amber-500/20 w-3 h-3 pointer-events-none"
+                      />
+                      <span>Low Reviews</span>
+                    </button>
+
+                    {/* Poor Rating Checkbox */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGaps(prev => ({ ...prev, poorRating: !prev.poorRating }))}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        selectedGaps.poorRating
+                          ? 'bg-rose-50 border-rose-250 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-400'
+                          : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 dark:bg-slate-950 dark:border-slate-800'
+                      }`}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={selectedGaps.poorRating} 
+                        onChange={() => {}} // Controlled by button click
+                        className="rounded-sm border-slate-300 text-rose-600 focus:ring-rose-500/20 w-3 h-3 pointer-events-none"
+                      />
+                      <span>Poor Rating</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Simulated Email Client UI */}
+            <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+              <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-850 flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50">
+                <span className="text-[10px] font-bold text-slate-400 block w-14 uppercase shrink-0">To:</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">
+                  Owner at {lead.name} &bull; <span className="font-medium text-slate-400 italic">No public email (using contact fallback)</span>
+                </span>
+              </div>
+              
+              <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-850 flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50">
+                <label htmlFor="custom-subject-input" className="text-[10px] font-bold text-slate-400 block w-14 uppercase shrink-0">Subject:</label>
+                <input
+                  id="custom-subject-input"
+                  type="text"
+                  value={customSubject}
+                  onChange={(e) => {
+                    setCustomSubject(e.target.value);
+                    setIsManualEdit(true);
+                  }}
+                  className="w-full bg-transparent border-none p-0 focus:ring-0 focus:outline-hidden text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:bg-transparent"
+                  placeholder="Email Subject Line"
+                />
+              </div>
+
+              <div className="p-4 bg-white dark:bg-slate-950">
+                <textarea
+                  value={customBody}
+                  onChange={(e) => {
+                    setCustomBody(e.target.value);
+                    setIsManualEdit(true);
+                  }}
+                  rows={10}
+                  className="w-full bg-transparent border-none p-0 focus:ring-0 focus:outline-hidden font-mono text-xs text-slate-800 dark:text-slate-300 leading-relaxed resize-y min-h-[160px] focus:bg-transparent"
+                  placeholder="Draft your pitch here..."
+                />
+              </div>
+            </div>
+
+            {/* Action buttons and state indicators */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+              <div className="flex items-center gap-2">
+                {isManualEdit ? (
+                  <button
+                    type="button"
+                    onClick={handleResetTemplate}
+                    className="text-xs font-bold text-indigo-650 hover:text-indigo-850 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1 transition-all cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin-reverse" />
+                    <span>Reset to Template Default</span>
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Template auto-sync active</span>
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={sendQuickEmail}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 dark:bg-indigo-950 dark:border-indigo-900/50 dark:text-indigo-400 dark:hover:bg-indigo-900 rounded-lg cursor-pointer transition-colors"
+                  className="w-1/2 sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl cursor-pointer transition-colors shadow-xs"
                 >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Quick Email</span>
+                  <Mail className="w-4 h-4" />
+                  <span>Send Quick Email</span>
                 </button>
+                
                 <button
                   type="button"
                   onClick={copyToClipboard}
-                  className="flex items-center space-x-1 px-3 py-1.5 text-xs font-semibold bg-slate-55 border border-slate-200 hover:bg-slate-100 text-slate-600 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300 rounded-lg cursor-pointer transition-colors"
+                  className="w-1/2 sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2.5 text-xs font-bold bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-200 rounded-xl cursor-pointer transition-colors"
                 >
                   {copied ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-emerald-500 font-bold">Copied!</span>
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      <span className="text-emerald-500 font-bold">Copied Email Body!</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy Template</span>
+                      <Copy className="w-4 h-4 text-slate-450" />
+                      <span>Copy Email Body</span>
                     </>
                   )}
                 </button>
               </div>
-            </div>
-            <div className="p-4.5 rounded-xl border border-slate-150 bg-slate-950 font-mono text-xs text-slate-300 leading-relaxed overflow-x-auto whitespace-pre-wrap select-all max-h-[180px] border-slate-200 dark:border-slate-850">
-              {generatePitchText()}
             </div>
           </div>
 

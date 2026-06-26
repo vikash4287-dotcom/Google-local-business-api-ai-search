@@ -25,46 +25,120 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvc, setCardCvc] = useState('');
-  const [cardName, setCardName] = useState('');
+  const [payerName, setPayerName] = useState('Jane Doe');
+  const [payerEmail, setPayerEmail] = useState('user@example.com');
 
   if (!isOpen) return null;
 
-  const handleSimulatePayment = async (e: React.FormEvent) => {
+  const handleRazorpayPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cardNumber || !cardExpiry || !cardCvc || !cardName) {
-      setPaymentError('Please fill out all payment details.');
-      return;
-    }
-    
     setIsProcessing(true);
     setPaymentError(null);
 
-    // Simulate safe secure connection
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
     try {
-      const updated = await databaseService.updateSubscription(selectedTier);
-      onSubscriptionUpdate(updated);
-      setPaymentSuccess(true);
-      setTimeout(() => {
-        setPaymentSuccess(false);
-        onClose();
-      }, 2000);
+      // Starter: $9.00 -> ₹750 (75000 paise)
+      // Agency: $49.00 -> ₹4100 (410000 paise)
+      const amountInPaise = selectedTier === 'Starter' ? 75000 : 410000;
+      const currency = 'INR';
+
+      // 1. Create order on server-side
+      const orderResponse = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: amountInPaise,
+          currency,
+          receipt: `receipt_${selectedTier.toLowerCase()}_${Date.now()}`
+        }),
+      });
+
+      if (!orderResponse.ok) {
+        const errData = await orderResponse.json();
+        throw new Error(errData.error || 'Failed to create payment order');
+      }
+
+      const orderData = await orderResponse.json();
+      if (!orderData.success || !orderData.order_id) {
+        throw new Error('Invalid response from payment order creator');
+      }
+
+      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
+
+      // 2. Open official Razorpay Checkout Modal
+      const options = {
+        key: keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'LocalShopAI',
+        description: `Upgrade to ${selectedTier} Plan`,
+        order_id: orderData.order_id,
+        handler: async function (response: any) {
+          try {
+            setIsProcessing(true);
+            
+            // 3. Verify Payment Signature on server-side
+            const verifyResponse = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyResponse.json();
+            if (verifyResponse.ok && verifyData.success) {
+              const updated = await databaseService.updateSubscription(selectedTier);
+              onSubscriptionUpdate(updated);
+              setPaymentSuccess(true);
+              setTimeout(() => {
+                setPaymentSuccess(false);
+                onClose();
+              }, 2500);
+            } else {
+              throw new Error(verifyData.error || 'Signature verification failed');
+            }
+          } catch (verifyErr: any) {
+            console.error('Payment signature verification error:', verifyErr);
+            setPaymentError(verifyErr.message || 'Payment signature verification failed.');
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        prefill: {
+          name: payerName,
+          email: payerEmail,
+        },
+        theme: {
+          color: '#635bff',
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessing(false);
+            setPaymentError('Payment was cancelled by the user.');
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+
+      rzp.on('payment.failed', function (response: any) {
+        console.error('Payment failed event:', response.error);
+        setPaymentError(`Payment Failed: ${response.error.description}`);
+        setIsProcessing(false);
+      });
+
+      rzp.open();
     } catch (err: any) {
-      setPaymentError(err.message || 'Payment processing failed. Please try again.');
-    } finally {
+      console.error('Razorpay initialization failed:', err);
+      setPaymentError(err.message || 'Failed to initialize payment.');
       setIsProcessing(false);
     }
-  };
-
-  const autofillTestCard = () => {
-    setCardNumber('4242 •••• •••• 4242');
-    setCardExpiry('12/28');
-    setCardCvc('242');
-    setCardName('Test User');
   };
 
   const getLimitText = () => {
@@ -122,7 +196,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
           </div>
 
           <div className="text-[10px] text-indigo-350/80 font-semibold pt-4">
-            Secured by Stripe Billing API. Scale or cancel subscription at any point.
+            Secured by Razorpay Checkout API. Scale or cancel subscription at any point.
           </div>
         </div>
 
@@ -145,14 +219,14 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                 <Check className="w-8 h-8" />
               </div>
               <div>
-                <h4 className="text-base font-black text-slate-950 dark:text-slate-50">Activation Succesful!</h4>
+                <h4 className="text-base font-black text-slate-950 dark:text-slate-50">Activation Successful!</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-semibold max-w-xs">
                   Your profile has been upgraded to **{selectedTier} plan**. Your higher search daily quotas and leads views are instantly active!
                 </p>
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSimulatePayment} className="space-y-4 pt-4">
+            <form onSubmit={handleRazorpayPayment} className="space-y-4 pt-4">
               
               {/* Plan Choice Select Button Toggles */}
               <div className="space-y-1.5">
@@ -166,7 +240,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                     className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${selectedTier === 'Starter' ? 'border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400'}`}
                   >
                     <span className="text-xs font-black">Starter</span>
-                    <span className="text-[11px] font-semibold mt-1 opacity-90">$9/mo</span>
+                    <span className="text-[11px] font-semibold mt-1 opacity-90">₹750/mo (~$9)</span>
                   </button>
                   <button
                     type="button"
@@ -174,7 +248,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                     className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${selectedTier === 'Agency' ? 'border-purple-500 bg-purple-50/10 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 font-bold' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400'}`}
                   >
                     <span className="text-xs font-black">Agency</span>
-                    <span className="text-[11px] font-semibold mt-1 opacity-90">$49/mo</span>
+                    <span className="text-[11px] font-semibold mt-1 opacity-90">₹4,100/mo (~$49)</span>
                   </button>
                 </div>
               </div>
@@ -184,14 +258,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                 <div className="flex gap-2">
                   <Info className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                    Demo Mode: Click this helper button to fill out safe demo credit parameters.
-                    <button
-                      type="button"
-                      onClick={autofillTestCard}
-                      className="text-indigo-600 dark:text-indigo-400 font-bold underline ml-1 cursor-pointer"
-                    >
-                      Use Test Card info
-                    </button>
+                    Razorpay Checkout prefill details can be configured below.
                   </div>
                 </div>
               </div>
@@ -199,58 +266,30 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
               <div className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500">
-                    Cardholder Name
+                    Your Name
                   </label>
                   <input
                     type="text"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
+                    value={payerName}
+                    onChange={(e) => setPayerName(e.target.value)}
                     placeholder="Jane Doe"
+                    required
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-white font-semibold focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500">
-                    Card Number
+                    Email Address
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      placeholder="4242 4242 4242 4242"
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-white font-semibold font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                    />
-                    <CreditCard className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3.5" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500">
-                      Expiration Date
-                    </label>
-                    <input
-                      type="text"
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(e.target.value)}
-                      placeholder="MM/YY"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-white font-semibold font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500">
-                      CVC Code
-                    </label>
-                    <input
-                      type="password"
-                      value={cardCvc}
-                      onChange={(e) => setCardCvc(e.target.value)}
-                      placeholder="•••"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-white font-semibold font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                    />
-                  </div>
+                  <input
+                    type="email"
+                    value={payerEmail}
+                    onChange={(e) => setPayerEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    required
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-white font-semibold focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  />
                 </div>
               </div>
 
@@ -269,17 +308,17 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                   {isProcessing ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Verifying with Stripe...</span>
+                      <span>Verifying Payment...</span>
                     </>
                   ) : (
                     <>
                       <Zap className="w-3.5 h-3.5 animate-bounce fill-current" />
-                      <span>Unlock {selectedTier} Plan Access Now</span>
+                      <span>Unlock {selectedTier} Access with Razorpay</span>
                     </>
                   )}
                 </button>
                 <div className="text-[9px] text-slate-400 text-center mt-2 flex items-center justify-center gap-1 font-semibold">
-                  <span>🔒 Secure checkout via Stripe</span>
+                  <span>🔒 Secure checkout via Razorpay Standard Gateway</span>
                 </div>
               </div>
 

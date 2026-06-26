@@ -22,13 +22,11 @@ interface PricingSectionProps {
 
 export default function PricingSection({ subscription, onSubscriptionUpdate }: PricingSectionProps) {
   const [checkoutTier, setCheckoutTier] = useState<SubscriptionTier | null>(null);
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvc, setCardCvc] = useState('');
-  const [cardName, setCardName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [payerName, setPayerName] = useState('Jane Doe');
+  const [payerEmail, setPayerEmail] = useState('user@example.com');
 
   const plans = [
     {
@@ -116,47 +114,119 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
     setCheckoutTier(tier);
     setPaymentSuccess(false);
     setPaymentError(null);
-    setCardNumber('');
-    setCardExpiry('');
-    setCardCvc('');
-    setCardName('');
   };
 
-  const handleSimulatePayment = async (e: React.FormEvent) => {
+  const handleRazorpayPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cardNumber || !cardExpiry || !cardCvc || !cardName) {
-      setPaymentError('Please fill out all payment details.');
-      return;
-    }
+    if (!checkoutTier) return;
     
     setIsProcessing(true);
     setPaymentError(null);
 
-    // Simulate safe secure connection
-    await new Promise(resolve => setTimeout(resolve, 2200));
-
     try {
-      if (checkoutTier) {
-        const updated = await databaseService.updateSubscription(checkoutTier);
-        onSubscriptionUpdate(updated);
-        setPaymentSuccess(true);
-        setTimeout(() => {
-          setCheckoutTier(null);
-          setPaymentSuccess(false);
-        }, 2000);
+      // Starter: $9.00 -> ₹750 (75000 paise)
+      // Agency: $49.00 -> ₹4100 (410000 paise)
+      const amountInPaise = checkoutTier === 'Starter' ? 75000 : 410000;
+      const currency = 'INR';
+
+      // 1. Create order on server-side
+      const orderResponse = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: amountInPaise,
+          currency,
+          receipt: `receipt_${checkoutTier.toLowerCase()}_${Date.now()}`
+        }),
+      });
+
+      if (!orderResponse.ok) {
+        const errData = await orderResponse.json();
+        throw new Error(errData.error || 'Failed to create payment order');
       }
+
+      const orderData = await orderResponse.json();
+      if (!orderData.success || !orderData.order_id) {
+        throw new Error('Invalid response from payment order creator');
+      }
+
+      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
+
+      // 2. Open official Razorpay Checkout Modal
+      const options = {
+        key: keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'LocalShopAI',
+        description: `Upgrade to ${checkoutTier} Plan`,
+        order_id: orderData.order_id,
+        handler: async function (response: any) {
+          try {
+            setIsProcessing(true);
+            
+            // 3. Verify Payment Signature on server-side
+            const verifyResponse = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyResponse.json();
+            if (verifyResponse.ok && verifyData.success) {
+              const updated = await databaseService.updateSubscription(checkoutTier);
+              onSubscriptionUpdate(updated);
+              setPaymentSuccess(true);
+              setTimeout(() => {
+                setPaymentSuccess(false);
+                setCheckoutTier(null);
+              }, 2500);
+            } else {
+              throw new Error(verifyData.error || 'Signature verification failed');
+            }
+          } catch (verifyErr: any) {
+            console.error('Payment signature verification error:', verifyErr);
+            setPaymentError(verifyErr.message || 'Payment signature verification failed.');
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        prefill: {
+          name: payerName,
+          email: payerEmail,
+        },
+        theme: {
+          color: '#635bff',
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessing(false);
+            setPaymentError('Payment was cancelled by the user.');
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+
+      rzp.on('payment.failed', function (response: any) {
+        console.error('Payment failed event:', response.error);
+        setPaymentError(`Payment Failed: ${response.error.description}`);
+        setIsProcessing(false);
+      });
+
+      rzp.open();
     } catch (err: any) {
-      setPaymentError(err.message || 'Payment processing failed. Please try again.');
-    } finally {
+      console.error('Razorpay initialization failed:', err);
+      setPaymentError(err.message || 'Failed to initialize payment.');
       setIsProcessing(false);
     }
-  };
-
-  const autofillTestCard = () => {
-    setCardNumber('4242 •••• •••• 4242');
-    setCardExpiry('12/28');
-    setCardCvc('242');
-    setCardName('Test User');
   };
 
   return (
@@ -259,20 +329,20 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
       {checkoutTier && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Stripe-Ready Visual Sidebar style Header bar */}
+            {/* Razorpay-Ready Visual Sidebar style Header bar */}
             <div className="bg-[#635bff] text-white p-6 relative overflow-hidden flex justify-between items-start">
               <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-indigo-600 to-indigo-900" />
               <div className="relative z-10 space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-xs tracking-wider uppercase bg-white/20 px-2 py-0.5 rounded">
-                    STRIPE BILLING
+                    RAZORPAY BILLING
                   </span>
                   <span className="p-0.5 rounded-full bg-white text-emerald-500">
                     <ShieldCheck className="w-3.5 h-3.5" />
                   </span>
                 </div>
                 <h3 className="text-xl font-bold flex items-center gap-1">
-                  <span>Pay with Stripe</span>
+                  <span>Pay with Razorpay</span>
                 </h3>
                 <p className="text-xs text-indigo-100 font-medium">To activate LocalShop {checkoutTier} Plan subscription</p>
               </div>
@@ -289,9 +359,9 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
 
             {/* Price Details */}
             <div className="p-5 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-900/80 flex justify-between items-center text-slate-800 dark:text-slate-10s">
-              <span className="text-xs font-bold">Standard Recurring Monthly Fee:</span>
+              <span className="text-xs font-bold">Standard Recurring Fee:</span>
               <span className="text-lg font-black text-slate-950 dark:text-white">
-                {checkoutTier === 'Starter' ? '$9.00' : '$48.99'}/month
+                {checkoutTier === 'Starter' ? '₹750/month' : '₹4,100/month'}
               </span>
             </div>
 
@@ -309,88 +379,48 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSimulatePayment} className="space-y-4">
+                <form onSubmit={handleRazorpayPayment} className="space-y-4">
                   {/* Test Data help prompt */}
                   <div className="p-3.5 bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/40 dark:border-indigo-900/30 rounded-xl flex items-start gap-2.5">
                     <Info className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
                     <div className="space-y-0.5">
-                      <p className="text-[10px] uppercase font-black tracking-wider text-indigo-600 dark:text-indigo-400">Demo Payment Environment</p>
+                      <p className="text-[10px] uppercase font-black tracking-wider text-indigo-600 dark:text-indigo-400">Razorpay Payment Environment</p>
                       <p className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold leading-relaxed">
-                        To pay, enter any realistic card number (e.g. 4242). No real charges are executed.
+                        Specify your billing details below. On the next screen, you can choose mock credit card, UPI, or Netbanking in the Razorpay sandbox.
                       </p>
-                      <button
-                        type="button"
-                        onClick={autofillTestCard}
-                        className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold underline mt-1 cursor-pointer block text-left"
-                      >
-                        ⚡ Autofill Mock Test Card Info
-                      </button>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Cardholder Name
+                      Your Name
                     </label>
                     <input
                       type="text"
-                      value={cardName}
-                      onChange={(e) => setCardName(e.target.value)}
+                      value={payerName}
+                      onChange={(e) => setPayerName(e.target.value)}
                       placeholder="Jane Doe"
+                      required
                       className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-805 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Card Number
+                      Email Address
                     </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        placeholder="4242 4242 4242 4242"
-                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-805 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
-                      />
-                      <CreditCard className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                        Exp Date
-                      </label>
-                      <input
-                        type="text"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        placeholder="MM/YY"
-                        maxLength={5}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-805 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                        CVC Code
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="password"
-                          value={cardCvc}
-                          onChange={(e) => setCardCvc(e.target.value)}
-                          placeholder="•••"
-                          maxLength={4}
-                          className="w-full pl-3.5 pr-8 py-2.5 bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-805 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
-                        />
-                        <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-4" />
-                      </div>
-                    </div>
+                    <input
+                      type="email"
+                      value={payerEmail}
+                      onChange={(e) => setPayerEmail(e.target.value)}
+                      placeholder="user@example.com"
+                      required
+                      className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-805 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    />
                   </div>
 
                   {paymentError && (
-                    <div className="p-3 text-[11px] bg-rose-50 border border-rose-100 text-rose-800 rounded-xl dark:bg-rose-950/20 dark:border-rose-900 font-semibold leading-relaxed">
+                    <div className="p-3 text-[11px] bg-rose-50 border border-rose-100 text-rose-800 rounded-lg dark:bg-rose-950/20 dark:border-rose-900 font-semibold leading-relaxed">
                       ⚠️ {paymentError}
                     </div>
                   )}
@@ -404,18 +434,18 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
                       {isProcessing ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Connecting securely to Stripe Gateway...</span>
+                          <span>Verifying Payment...</span>
                         </>
                       ) : (
                         <>
-                          <CreditCard className="w-4 h-4" />
-                          <span>Subscribe for {checkoutTier === 'Starter' ? '$9.00' : '$48.99'} Now</span>
+                          <Zap className="w-4 h-4 fill-current" />
+                          <span>Unlock {checkoutTier} Plan with Razorpay</span>
                         </>
                       )}
                     </button>
                     <p className="text-[10px] font-medium text-slate-400 text-center mt-2.5 flex items-center justify-center gap-1">
                       <Lock className="w-3 h-3 text-emerald-500" />
-                      <span>🔒 Fully encrypted 256-bit SSL transaction via Stripe API</span>
+                      <span>🔒 Fully encrypted 256-bit SSL transaction via Razorpay API</span>
                     </p>
                   </div>
                 </form>
