@@ -130,16 +130,9 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
       const currency = 'INR';
 
       // 1. Create order on server-side
-      const orderResponse = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: amountInPaise,
-          currency,
-          receipt: `receipt_${checkoutTier.toLowerCase()}_${Date.now()}`
-        }),
+      const receiptId = `receipt_${checkoutTier.toLowerCase()}_${Date.now()}`;
+      const orderResponse = await fetch(`/api/create-order?amount=${amountInPaise}&currency=${currency}&receipt=${encodeURIComponent(receiptId)}`, {
+        method: 'GET',
       });
 
       if (!orderResponse.ok) {

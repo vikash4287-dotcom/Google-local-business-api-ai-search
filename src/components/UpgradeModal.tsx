@@ -42,16 +42,9 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
       const currency = 'INR';
 
       // 1. Create order on server-side
-      const orderResponse = await fetch('/api/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: amountInPaise,
-          currency,
-          receipt: `receipt_${selectedTier.toLowerCase()}_${Date.now()}`
-        }),
+      const receiptId = `receipt_${selectedTier.toLowerCase()}_${Date.now()}`;
+      const orderResponse = await fetch(`/api/create-order?amount=${amountInPaise}&currency=${currency}&receipt=${encodeURIComponent(receiptId)}`, {
+        method: 'GET',
       });
 
       if (!orderResponse.ok) {

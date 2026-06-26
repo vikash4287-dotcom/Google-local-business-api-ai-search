@@ -564,15 +564,17 @@ You must return a cohesive JSON object conforming strictly to this format:
   });
 
   // Razorpay Create Order Endpoint
-  app.post('/api/create-order', async (req, res) => {
+  app.get('/api/create-order', async (req, res) => {
     try {
-      const { amount, currency = 'INR', receipt = 'receipt_order_1' } = req.body;
+      const amount = req.query.amount || req.body?.amount;
+      const currency = req.query.currency || req.body?.currency || 'INR';
+      const receipt = req.query.receipt || req.body?.receipt || 'receipt_order_1';
       
       if (!amount) {
         return res.status(400).json({ error: 'Amount is required.' });
       }
 
-      const parsedAmount = parseInt(amount, 10);
+      const parsedAmount = parseInt(amount as string, 10);
       if (isNaN(parsedAmount) || parsedAmount < 100) {
         return res.status(400).json({ error: 'Minimum amount must be at least 100 paise (1 INR).' });
       }
@@ -580,8 +582,8 @@ You must return a cohesive JSON object conforming strictly to this format:
       const razorpay = getRazorpay();
       const options = {
         amount: parsedAmount,
-        currency,
-        receipt,
+        currency: currency as string,
+        receipt: receipt as string,
       };
 
       const order = await razorpay.orders.create(options);
