@@ -131,7 +131,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
 
       // 1. Create order on server-side
       const receiptId = `receipt_${checkoutTier.toLowerCase()}_${Date.now()}`;
-      const orderResponse = await fetch(`https://google-local-business-api-ai-search.onrender.com/api/create-order?amount=${amountInPaise}&currency=${currency}&receipt=${encodeURIComponent(receiptId)}`, {
+      const orderResponse = await fetch(`/api/create-order?amount=${amountInPaise}&currency=${currency}&receipt=${encodeURIComponent(receiptId)}`, {
         method: 'GET',
       });
 
@@ -160,7 +160,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
             setIsProcessing(true);
             
             // 3. Verify Payment Signature on server-side
-            const verifyResponse = await fetch('https://google-local-business-api-ai-search.onrender.com/api/verify-payment', {
+            const verifyResponse = await fetch('/api/verify-payment', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
