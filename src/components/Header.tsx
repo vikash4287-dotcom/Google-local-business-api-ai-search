@@ -98,7 +98,6 @@ export default function Header({
           <span className="text-sm font-black tracking-tight bg-gradient-to-r from-slate-950 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text leading-none mt-1 select-none">
             LocalShop <span className="text-indigo-600 dark:text-indigo-400">AI</span>
           </span>
-          <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider uppercase select-none">Local SaaS</span>
         </div>
       </div>
 

@@ -61,7 +61,6 @@ export default function Sidebar({
               <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-slate-950 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text">
                 LocalShop <span className="text-indigo-600 dark:text-indigo-400">AI</span>
               </span>
-              <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 tracking-wider uppercase">Local SaaS Discovery</p>
             </div>
           </div>
           <button 

@@ -566,33 +566,23 @@ You must return a cohesive JSON object conforming strictly to this format:
   // Razorpay Create Order Endpoint
   app.get('/api/create-order', async (req, res) => {
     try {
-      const amount = req.query.amount || req.body?.amount;
-      const currency = req.query.currency || req.body?.currency || 'INR';
-      const receipt = req.query.receipt || req.body?.receipt || 'receipt_order_1';
+      const amount = req.query.amount;
+      const currency = req.query.currency || 'INR';
+      const receipt = req.query.receipt || '';
       
       if (!amount) {
         return res.status(400).json({ error: 'Amount is required.' });
       }
 
-      const parsedAmount = parseInt(amount as string, 10);
-      if (isNaN(parsedAmount) || parsedAmount < 100) {
-        return res.status(400).json({ error: 'Minimum amount must be at least 100 paise (1 INR).' });
+      // Proxy request to Render backend to use real credentials and keys
+      const targetUrl = `https://google-local-business-api-ai-search.onrender.com/api/create-order?amount=${amount}&currency=${currency}&receipt=${encodeURIComponent(receipt as string)}`;
+      const response = await fetch(targetUrl);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return res.status(response.status).json(data);
       }
-
-      const razorpay = getRazorpay();
-      const options = {
-        amount: parsedAmount,
-        currency: currency as string,
-        receipt: receipt as string,
-      };
-
-      const order = await razorpay.orders.create(options);
-      res.json({
-        success: true,
-        order_id: order.id,
-        amount: order.amount,
-        currency: order.currency
-      });
+      res.json(data);
     } catch (error: any) {
       console.error('Razorpay Order Creation Error:', error);
       res.status(500).json({ error: error.message || 'Failed to create Razorpay order' });
@@ -608,21 +598,21 @@ You must return a cohesive JSON object conforming strictly to this format:
         return res.status(400).json({ error: 'Missing required parameters: razorpay_order_id, razorpay_payment_id, and razorpay_signature are required.' });
       }
 
-      const keySecret = process.env.RAZORPAY_KEY_SECRET || '4pE6rDTkljAgMVj6yOclM2Xn';
-      if (!keySecret) {
-        return res.status(500).json({ error: 'Razorpay key secret is not configured on the server.' });
-      }
+      // Proxy verification request to Render backend to use real credentials and keys
+      const targetUrl = 'https://google-local-business-api-ai-search.onrender.com/api/verify-payment';
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(req.body)
+      });
+      const data = await response.json();
 
-      const generatedSignature = crypto
-        .createHmac('sha256', keySecret)
-        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-        .digest('hex');
-
-      if (generatedSignature === razorpay_signature) {
-        res.json({ success: true, message: 'Payment verified successfully.' });
-      } else {
-        res.status(400).json({ success: false, error: 'Signature mismatch. Potential fraud detected.' });
+      if (!response.ok) {
+        return res.status(response.status).json(data);
       }
+      res.json(data);
     } catch (error: any) {
       console.error('Razorpay Payment Verification Error:', error);
       res.status(500).json({ error: error.message || 'Failed to verify payment signature' });
