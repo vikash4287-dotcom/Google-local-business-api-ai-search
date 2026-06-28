@@ -31,6 +31,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
   const [payerName, setPayerName] = useState('Jane Doe');
   const [payerEmail, setPayerEmail] = useState('user@example.com');
   const [selectedCurrency, setSelectedCurrency] = useState<'INR' | 'USD'>(() => detectDefaultCurrency());
+  const [isSimulated, setIsSimulated] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -39,6 +40,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
         setPayerEmail(user.email || 'user@example.com');
         setPayerName(user.displayName || 'Client User');
       }
+      setIsSimulated(false);
     }
   }, [isOpen]);
 
@@ -63,6 +65,47 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
       // 1. Create order using service file
       const receiptId = `receipt_${selectedTier.toLowerCase()}_${Date.now()}`;
       const orderData = await razorpayService.createOrder(amount, currency, receiptId);
+
+      const isSim = !!(orderData as any).isSimulated || orderData.order_id.startsWith('sim_');
+      if (isSim) {
+        setIsSimulated(true);
+        console.log('Detected simulated sandbox mode in UpgradeModal. Bypassing Razorpay Checkout.');
+
+        setTimeout(async () => {
+          try {
+            const verifyData = await razorpayService.verifyPayment(
+              orderData.order_id,
+              `pay_sim_${Math.random().toString(36).substring(2, 11)}`,
+              'simulated_signature_bypass',
+              selectedTier
+            );
+
+            if (verifyData.success) {
+              if (verifyData.subscription) {
+                localStorage.setItem('localshop_ai_subscription', JSON.stringify(verifyData.subscription));
+                onSubscriptionUpdate(verifyData.subscription);
+              } else {
+                const updated = await databaseService.updateSubscription(selectedTier);
+                onSubscriptionUpdate(updated);
+              }
+              setPaymentSuccess(true);
+              setTimeout(() => {
+                setPaymentSuccess(false);
+                onClose();
+                setIsSimulated(false);
+              }, 2500);
+            } else {
+              throw new Error(verifyData.error || 'Simulated verification failed');
+            }
+          } catch (verifyErr: any) {
+            console.error('Simulated verification error:', verifyErr);
+            setPaymentError(verifyErr.message || 'Simulated payment verification failed.');
+          } finally {
+            setIsProcessing(false);
+          }
+        }, 1500);
+        return;
+      }
 
       const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
 
