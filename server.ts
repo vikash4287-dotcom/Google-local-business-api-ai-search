@@ -29,8 +29,8 @@ try {
 let razorpayInstance: any = null;
 function getRazorpay() {
   if (!razorpayInstance) {
-    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || '4pE6rDTkljAgMVj6yOclM2Xn';
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_T74Jw89MqYoIuz';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'H1PCpj7Z4sgl1Kc2o42byWCQ';
     
     if (!keyId || !keySecret) {
       throw new Error('Razorpay credentials are not fully configured in environment variables');
@@ -49,7 +49,11 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf;
+    }
+  }));
 
   // Logging middleware to inspect incoming traffic
   app.use((req, res, next) => {
@@ -587,6 +591,8 @@ You must return a cohesive JSON object conforming strictly to this format:
       const amountParam = req.query.amount;
       const currency = (req.query.currency as string) || 'INR';
       const receipt = (req.query.receipt as string) || `receipt_${Date.now()}`;
+      const userId = (req.query.userId as string) || '';
+      const tier = (req.query.tier as string) || '';
       
       if (!amountParam) {
         return res.status(400).json({ error: 'Amount is required.' });
@@ -597,7 +603,7 @@ You must return a cohesive JSON object conforming strictly to this format:
         return res.status(400).json({ error: 'Amount must be a valid integer.' });
       }
 
-      console.log(`Creating Razorpay order for amount: ${amount} ${currency}, receipt: ${receipt}`);
+      console.log(`Creating Razorpay order for amount: ${amount} ${currency}, receipt: ${receipt}, userId: ${userId}, tier: ${tier}`);
       
       try {
         const rzp = getRazorpay();
@@ -605,6 +611,10 @@ You must return a cohesive JSON object conforming strictly to this format:
           amount,
           currency,
           receipt,
+          notes: {
+            userId,
+            tier
+          }
         });
 
         res.json({
@@ -646,7 +656,7 @@ You must return a cohesive JSON object conforming strictly to this format:
   // Razorpay Create Order Endpoint (POST)
   app.post('/api/create-order', async (req, res) => {
     try {
-      const { amount: amountBody, currency: currencyBody, receipt: receiptBody } = req.body;
+      const { amount: amountBody, currency: currencyBody, receipt: receiptBody, userId, tier } = req.body;
       const amountParam = amountBody;
       const currency = (currencyBody as string) || 'INR';
       const receipt = (receiptBody as string) || `receipt_${Date.now()}`;
@@ -664,7 +674,7 @@ You must return a cohesive JSON object conforming strictly to this format:
         return res.status(400).json({ error: 'Amount must be at least 100 paise.' });
       }
 
-      console.log(`Creating Razorpay order (POST) for amount: ${amount} ${currency}, receipt: ${receipt}`);
+      console.log(`Creating Razorpay order (POST) for amount: ${amount} ${currency}, receipt: ${receipt}, userId: ${userId}, tier: ${tier}`);
       
       try {
         const rzp = getRazorpay();
@@ -672,6 +682,10 @@ You must return a cohesive JSON object conforming strictly to this format:
           amount,
           currency,
           receipt,
+          notes: {
+            userId: userId || '',
+            tier: tier || ''
+          }
         });
 
         res.json({
@@ -725,7 +739,7 @@ You must return a cohesive JSON object conforming strictly to this format:
 
       if (!isBypass) {
         // Verify signature
-        const keySecret = process.env.RAZORPAY_KEY_SECRET || '4pE6rDTkljAgMVj6yOclM2Xn';
+        const keySecret = process.env.RAZORPAY_KEY_SECRET || 'H1PCpj7Z4sgl1Kc2o42byWCQ';
         const hmac = crypto.createHmac('sha256', keySecret);
         hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
         const generatedSignature = hmac.digest('hex');
@@ -791,6 +805,107 @@ You must return a cohesive JSON object conforming strictly to this format:
         error: error.message || 'Failed to verify payment signature',
         details: error.stack
       });
+    }
+  });
+
+  // Razorpay Webhook Endpoint
+  app.post('/api/razorpay-webhook', async (req: any, res) => {
+    try {
+      const signature = req.headers['x-razorpay-signature'];
+      if (!signature) {
+        console.error('Webhook verification failed: Missing x-razorpay-signature header');
+        return res.status(400).json({ error: 'Missing x-razorpay-signature header' });
+      }
+
+      const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || 'rzp_test_webhook_secret_dummy';
+      
+      const shasum = crypto.createHmac('sha256', webhookSecret);
+      const rawPayload = req.rawBody || Buffer.from(JSON.stringify(req.body));
+      shasum.update(rawPayload);
+      const digest = shasum.digest('hex');
+
+      if (digest !== signature) {
+        console.warn('Webhook signature mismatch. Validation failed.');
+        return res.status(400).json({ error: 'Signature mismatch' });
+      }
+
+      console.log('Razorpay Webhook signature verified successfully.');
+
+      const { event, payload } = req.body;
+      
+      if (!event || !payload) {
+        return res.status(400).json({ error: 'Missing event or payload fields' });
+      }
+
+      if (event === 'payment.captured') {
+        const payment = payload.payment?.entity;
+        if (!payment) {
+          return res.status(400).json({ error: 'Missing payment entity inside payload' });
+        }
+
+        const orderId = payment.order_id;
+        const paymentId = payment.id;
+        const notes = payment.notes || {};
+        const userId = notes.userId;
+        const tier = notes.tier;
+
+        if (!userId) {
+          console.warn(`Webhook payment.captured received for order ${orderId} but notes.userId was missing. Skipping DB update.`);
+          return res.json({ status: 'ignored', reason: 'No userId found in payment notes' });
+        }
+
+        console.log(`Webhook payment.captured: Processing upgrade for user ${userId} to ${tier || 'Free'}`);
+
+        if (firestoreDb) {
+          const today = new Date().toISOString().split('T')[0];
+          const docRef = firestoreDoc(firestoreDb, 'users', userId);
+          const docSnap = await firestoreGetDoc(docRef);
+          
+          let subscription = {
+            tier: tier || 'Free',
+            searchesToday: 0,
+            lastSearchDate: today
+          };
+
+          let history: any[] = [];
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.subscription) {
+              subscription = {
+                ...data.subscription,
+                tier: tier || 'Free',
+              };
+            }
+            if (data.subscriptionHistory) {
+              history = data.subscriptionHistory;
+            }
+          }
+
+          // Check if we already processed this paymentId to avoid duplicate entries in history
+          const alreadyProcessed = history.some((h: any) => h.id === paymentId);
+          if (!alreadyProcessed) {
+            const amount = tier === 'Free' ? 0 : (tier === 'Starter' ? 750 : 4100);
+            const newEntry = {
+              id: paymentId,
+              tier: tier || 'Free',
+              date: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+              amount,
+              currency: payment.currency || 'INR',
+              status: 'Completed'
+            };
+            history = [newEntry, ...history];
+          }
+
+          await firestoreSetDoc(docRef, { subscription, subscriptionHistory: history }, { merge: true });
+          console.log(`Webhook successfully updated subscription and history in Firestore for user ${userId}`);
+        }
+      }
+
+      res.json({ status: 'ok' });
+    } catch (error: any) {
+      console.error('Razorpay Webhook Handling Error:', error);
+      res.status(500).json({ error: error.message || 'Internal server error processing webhook' });
     }
   });
 

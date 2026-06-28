@@ -110,7 +110,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
 
       // 1. Create order using service file
       const receiptId = `receipt_${checkoutTier.toLowerCase()}_${Date.now()}`;
-      const orderData = await razorpayService.createOrder(amount, currency, receiptId);
+      const orderData = await razorpayService.createOrder(amount, currency, receiptId, checkoutTier);
 
       const isSim = !!(orderData as any).isSimulated || orderData.order_id.startsWith('sim_');
       if (isSim) {
@@ -149,7 +149,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
         return;
       }
 
-      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
+      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T74Jw89MqYoIuz';
 
       // 2. Open official Razorpay Checkout Modal
       const options = {
@@ -211,8 +211,10 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
       const rzp = new (window as any).Razorpay(options);
 
       rzp.on('payment.failed', function (response: any) {
-        console.error('Payment failed event:', response.error);
-        setPaymentError(`Payment Failed: ${response.error.description}`);
+        console.error('Payment failed event:', response);
+        const errorDetails = response?.error || {};
+        const errorDescription = errorDetails.description || errorDetails.message || response?.message || 'The transaction could not be completed.';
+        setPaymentError(`Payment Failed: ${errorDescription}`);
         setIsProcessing(false);
       });
 

@@ -27,10 +27,12 @@ export const razorpayService = {
   async createOrder(
     amount: number,
     currency: 'INR' | 'USD',
-    receipt: string
+    receipt: string,
+    tier?: SubscriptionTier
   ): Promise<RazorpayOrderResponse> {
     try {
-      const url = `/api/create-order?amount=${amount}&currency=${currency}&receipt=${encodeURIComponent(receipt)}`;
+      const userId = auth.currentUser?.uid || 'usr_default_vikash';
+      const url = `/api/create-order?amount=${amount}&currency=${currency}&receipt=${encodeURIComponent(receipt)}&userId=${encodeURIComponent(userId)}&tier=${encodeURIComponent(tier || '')}`;
       const response = await fetch(url, {
         method: 'GET',
       });
