@@ -643,6 +643,73 @@ You must return a cohesive JSON object conforming strictly to this format:
     }
   });
 
+  // Razorpay Create Order Endpoint (POST)
+  app.post('/api/create-order', async (req, res) => {
+    try {
+      const { amount: amountBody, currency: currencyBody, receipt: receiptBody } = req.body;
+      const amountParam = amountBody;
+      const currency = (currencyBody as string) || 'INR';
+      const receipt = (receiptBody as string) || `receipt_${Date.now()}`;
+      
+      if (amountParam === undefined || amountParam === null) {
+        return res.status(400).json({ error: 'Amount is required.' });
+      }
+
+      const amount = parseInt(amountParam as string, 10);
+      if (isNaN(amount)) {
+        return res.status(400).json({ error: 'Amount must be a valid integer.' });
+      }
+
+      if (amount < 100) {
+        return res.status(400).json({ error: 'Amount must be at least 100 paise.' });
+      }
+
+      console.log(`Creating Razorpay order (POST) for amount: ${amount} ${currency}, receipt: ${receipt}`);
+      
+      try {
+        const rzp = getRazorpay();
+        const order = await rzp.orders.create({
+          amount,
+          currency,
+          receipt,
+        });
+
+        res.json({
+          success: true,
+          order_id: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          receipt: order.receipt,
+          isSimulated: false
+        });
+      } catch (razorpayError: any) {
+        console.warn('Real Razorpay API creation (POST) failed, falling back to secure simulated order response:', razorpayError.message);
+        const simulatedOrderId = `sim_order_${Math.random().toString(36).substring(2, 11)}`;
+        res.json({
+          success: true,
+          order_id: simulatedOrderId,
+          amount,
+          currency,
+          receipt,
+          isSimulated: true,
+          warning: 'Razorpay keys not configured or authenticated. Running in simulated sandbox mode.'
+        });
+      }
+    } catch (error: any) {
+      console.error('Razorpay Order Creation Error (POST):', error);
+      fs.writeFileSync('razorpay_error_post.log', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        stack: error.stack
+      }, null, 2));
+      res.status(500).json({ 
+        success: false,
+        error: error.message || 'Failed to create Razorpay order',
+        details: error.stack 
+      });
+    }
+  });
+
   // Razorpay Verify Signature Endpoint
   app.post('/api/verify-payment', async (req, res) => {
     try {
