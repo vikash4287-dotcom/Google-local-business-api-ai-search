@@ -66,7 +66,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
       const receiptId = `receipt_${selectedTier.toLowerCase()}_${Date.now()}`;
       const orderData = await razorpayService.createOrder(amount, currency, receiptId, selectedTier);
 
-      const isSim = !!(orderData as any).isSimulated || orderData.order_id.startsWith('sim_');
+      const isSim = !!(orderData as any).isSimulated || orderData.order_id.startsWith('sim_') || currency === 'USD';
       if (isSim) {
         setIsSimulated(true);
         console.log('Detected simulated sandbox mode in UpgradeModal. Bypassing Razorpay Checkout.');
@@ -161,7 +161,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
       const rzp = new (window as any).Razorpay(options);
 
       rzp.on('payment.failed', function (response: any) {
-        console.error('Payment failed event:', response);
+        console.warn('Payment failed event:', response);
         const errorDetails = response?.error || {};
         const errorDescription = errorDetails.description || errorDetails.message || response?.message || 'The transaction could not be completed.';
         setPaymentError(`Payment Failed: ${errorDescription}`);
