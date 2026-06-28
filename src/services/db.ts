@@ -8,9 +8,10 @@ import {
   deleteDoc, 
   query, 
   orderBy, 
-  updateDoc 
+  updateDoc,
+  onSnapshot
 } from 'firebase/firestore';
-import { Business, SavedBusiness, SearchHistory, ActiveUser, WebsiteAudit, Proposal, ServicePackagesDraft, OutreachToolkit, UserSubscription, SubscriptionTier } from '../types';
+import { Business, SavedBusiness, SearchHistory, ActiveUser, WebsiteAudit, Proposal, ServicePackagesDraft, OutreachToolkit, UserSubscription, SubscriptionTier, SubscriptionHistoryEntry } from '../types';
 
 // Keys for LocalStorage fallbacks
 const STORAGE_PREFIX = 'localshop_ai_';
@@ -685,17 +686,128 @@ export const databaseService = {
     const current = await this.getSubscription();
     current.tier = tier;
 
+    const amount = tier === 'Free' ? 0 : (tier === 'Starter' ? 750 : 4100);
+    const newEntry: SubscriptionHistoryEntry = {
+      id: tier === 'Free' ? 'SUB-' + Math.random().toString(36).substring(2, 11).toUpperCase() : 'PAY-' + Math.random().toString(36).substring(2, 11).toUpperCase(),
+      tier,
+      date: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      amount,
+      currency: 'INR',
+      status: 'Completed'
+    };
+
     if (user) {
       try {
         const docRef = doc(db, 'users', user.uid);
-        await setDoc(docRef, { subscription: current }, { merge: true });
+        const docSnap = await getDoc(docRef);
+        let history: SubscriptionHistoryEntry[] = [];
+        if (docSnap.exists()) {
+          const d = docSnap.data();
+          if (d.subscriptionHistory) {
+            history = d.subscriptionHistory as SubscriptionHistoryEntry[];
+          }
+        }
+        history = [newEntry, ...history];
+        await setDoc(docRef, { subscription: current, subscriptionHistory: history }, { merge: true });
       } catch (err) {
         console.error("Failed to update Firestore subscription:", err);
       }
+    } else {
+      let history: SubscriptionHistoryEntry[] = [];
+      const localHistory = localStorage.getItem(`${STORAGE_PREFIX}subscription_history`);
+      if (localHistory) {
+        try {
+          history = JSON.parse(localHistory) as SubscriptionHistoryEntry[];
+        } catch (e) {}
+      }
+      history = [newEntry, ...history];
+      localStorage.setItem(`${STORAGE_PREFIX}subscription_history`, JSON.stringify(history));
     }
 
     localStorage.setItem(`${STORAGE_PREFIX}subscription`, JSON.stringify(current));
+    window.dispatchEvent(new Event('localshop_subscription_changed'));
+    window.dispatchEvent(new Event('localshop_subscription_history_changed'));
     return current;
+  },
+
+  async getSubscriptionHistory(): Promise<SubscriptionHistoryEntry[]> {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const d = docSnap.data();
+          if (d.subscriptionHistory) {
+            return d.subscriptionHistory as SubscriptionHistoryEntry[];
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch subscription history from firestore:", err);
+      }
+    }
+    const localHistory = localStorage.getItem(`${STORAGE_PREFIX}subscription_history`);
+    if (localHistory) {
+      try {
+        return JSON.parse(localHistory) as SubscriptionHistoryEntry[];
+      } catch (e) {
+        // ignore
+      }
+    }
+    return [];
+  },
+
+  subscribeToSubscriptionHistory(callback: (history: SubscriptionHistoryEntry[]) => void): () => void {
+    const user = auth.currentUser;
+    if (user) {
+      const docRef = doc(db, 'users', user.uid);
+      const unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const d = docSnap.data();
+          if (d.subscriptionHistory) {
+            callback(d.subscriptionHistory as SubscriptionHistoryEntry[]);
+            return;
+          }
+        }
+        callback([]);
+      }, (error) => {
+        console.warn("Firestore subscription history listener failed:", error);
+      });
+      return unsubscribe;
+    }
+
+    const checkLocal = () => {
+      const localHistory = localStorage.getItem(`${STORAGE_PREFIX}subscription_history`);
+      if (localHistory) {
+        try {
+          callback(JSON.parse(localHistory) as SubscriptionHistoryEntry[]);
+          return;
+        } catch (e) {
+          // ignore
+        }
+      }
+      callback([]);
+    };
+
+    checkLocal();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `${STORAGE_PREFIX}subscription_history`) {
+        checkLocal();
+      }
+    };
+
+    const handleCustomChange = () => {
+      checkLocal();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('localshop_subscription_history_changed', handleCustomChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('localshop_subscription_history_changed', handleCustomChange);
+    };
   },
 
   async incrementSearchCount(): Promise<UserSubscription> {
@@ -713,7 +825,83 @@ export const databaseService = {
     }
 
     localStorage.setItem(`${STORAGE_PREFIX}subscription`, JSON.stringify(current));
+    window.dispatchEvent(new Event('localshop_subscription_changed'));
     return current;
+  },
+
+  subscribeToSubscription(callback: (sub: UserSubscription) => void): () => void {
+    const user = auth.currentUser;
+    const today = new Date().toISOString().split('T')[0];
+    const defaultSub: UserSubscription = {
+      tier: 'Free',
+      searchesToday: 0,
+      lastSearchDate: today
+    };
+
+    if (user) {
+      const docRef = doc(db, 'users', user.uid);
+      const unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const d = docSnap.data();
+          if (d.subscription) {
+            const s = d.subscription as UserSubscription;
+            if (s.lastSearchDate !== today) {
+              s.searchesToday = 0;
+              s.lastSearchDate = today;
+              updateDoc(docRef, { subscription: s }).catch(err => console.warn(err));
+            }
+            callback(s);
+            return;
+          }
+        }
+        setDoc(docRef, { subscription: defaultSub }, { merge: true })
+          .then(() => callback(defaultSub))
+          .catch(err => console.warn(err));
+      }, (error) => {
+        console.warn("Firestore subscription listener failed:", error);
+      });
+      return unsubscribe;
+    }
+
+    const checkLocal = () => {
+      const localSub = localStorage.getItem(`${STORAGE_PREFIX}subscription`);
+      if (localSub) {
+        try {
+          const s = JSON.parse(localSub) as UserSubscription;
+          if (s.lastSearchDate !== today) {
+            s.searchesToday = 0;
+            s.lastSearchDate = today;
+            localStorage.setItem(`${STORAGE_PREFIX}subscription`, JSON.stringify(s));
+          }
+          callback(s);
+          return;
+        } catch (e) {
+          // ignore
+        }
+      }
+      localStorage.setItem(`${STORAGE_PREFIX}subscription`, JSON.stringify(defaultSub));
+      callback(defaultSub);
+    };
+
+    checkLocal();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `${STORAGE_PREFIX}subscription`) {
+        checkLocal();
+      }
+    };
+
+    const handleCustomChange = () => {
+      checkLocal();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('localshop_subscription_changed', handleCustomChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('localshop_subscription_changed', handleCustomChange);
+    };
   },
 
   // ----------------------------------------------------

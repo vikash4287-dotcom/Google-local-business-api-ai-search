@@ -13,7 +13,8 @@ import {
   LogOut, 
   ChevronDown, 
   RefreshCw, 
-  UserPlus
+  UserPlus,
+  CreditCard
 } from 'lucide-react';
 import { ActiveUser } from '../types';
 import { loginWithGoogle, logoutUser } from '../services/firebase';
@@ -28,8 +29,8 @@ interface HeaderProps {
   onOpenConnections: () => void;
   onOpenSearch?: () => void;
   onOpenAuth?: (initMode: 'login' | 'signup') => void;
-  activeTab: 'search' | 'saved';
-  setActiveTab: (tab: 'search' | 'saved') => void;
+  activeTab: 'search' | 'saved' | 'subscription';
+  setActiveTab: (tab: 'search' | 'saved' | 'subscription') => void;
   savedCount: number;
   onNavigate?: (path: string) => void;
 }
@@ -156,6 +157,17 @@ export default function Header({
               {savedCount}
             </span>
           )}
+        </button>
+        <button
+          onClick={() => setActiveTab('subscription')}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold tracking-normal transition-all leading-none cursor-pointer ${
+            activeTab === 'subscription'
+              ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <CreditCard className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Subscription</span>
         </button>
       </div>
 

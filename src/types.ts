@@ -112,6 +112,15 @@ export interface UserSubscription {
   lastSearchDate: string; // YYYY-MM-DD
 }
 
+export interface SubscriptionHistoryEntry {
+  id: string;
+  tier: SubscriptionTier;
+  date: string;
+  amount: number;
+  currency: string;
+  status: 'Completed' | 'Pending' | 'Cancelled';
+}
+
 
 
 

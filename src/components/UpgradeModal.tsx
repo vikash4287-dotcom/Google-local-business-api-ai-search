@@ -89,11 +89,6 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                 onSubscriptionUpdate(updated);
               }
               setPaymentSuccess(true);
-              setTimeout(() => {
-                setPaymentSuccess(false);
-                onClose();
-                setIsSimulated(false);
-              }, 2500);
             } else {
               throw new Error(verifyData.error || 'Simulated verification failed');
             }
@@ -138,10 +133,6 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                 onSubscriptionUpdate(updated);
               }
               setPaymentSuccess(true);
-              setTimeout(() => {
-                setPaymentSuccess(false);
-                onClose();
-              }, 2500);
             } else {
               throw new Error(verifyData.error || 'Signature verification failed');
             }
@@ -199,6 +190,94 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
   };
 
   const text = getLimitText();
+
+  if (paymentSuccess) {
+    return (
+      <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+        <div className="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-2xl max-w-md w-full shadow-2xl p-8 relative overflow-hidden animate-in zoom-in-95 duration-200 text-center space-y-6">
+          {/* Confetti/Sparkle decoration */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/10 dark:bg-purple-400/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center border border-emerald-100 dark:border-emerald-900 mx-auto animate-bounce">
+            <Sparkles className="w-8 h-8 fill-current text-emerald-500" />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+              🎉 Welcome to {selectedTier}!
+            </h3>
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+              Your account has been successfully upgraded.
+            </p>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-900/80 rounded-xl p-5 text-left space-y-3">
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+              You now have:
+            </span>
+            <ul className="space-y-2.5">
+              {selectedTier === 'Starter' ? (
+                <>
+                  <li className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span>20 searches per day</span>
+                  </li>
+                  <li className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span>SEO Audits</span>
+                  </li>
+                  <li className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span>Proposal Builder</span>
+                  </li>
+                  <li className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span>AI Outreach</span>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                    <span>Unlimited reports & searches</span>
+                  </li>
+                  <li className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                    <span>SEO Audits & custom reports</span>
+                  </li>
+                  <li className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                    <span>Unlimited custom proposal builds</span>
+                  </li>
+                  <li className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                    <span>Tailored AI Outreach templates</span>
+                  </li>
+                  <li className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                    <span>Unlimited lead exports to CSV</span>
+                  </li>
+                </>
+              )}
+            </ul>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPaymentSuccess(false);
+              onClose();
+            }}
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Zap className="w-4 h-4 fill-current" />
+            <span>Start Searching</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">

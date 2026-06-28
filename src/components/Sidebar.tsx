@@ -1,9 +1,9 @@
 import React from 'react';
-import { Search, Bookmark, Database, Menu, X, ShieldAlert, Sparkles, Info, HelpCircle } from 'lucide-react';
+import { Search, Bookmark, Database, Menu, X, ShieldAlert, Sparkles, Info, HelpCircle, CreditCard } from 'lucide-react';
 
 interface SidebarProps {
-  activeTab: 'search' | 'saved';
-  setActiveTab: (tab: 'search' | 'saved') => void;
+  activeTab: 'search' | 'saved' | 'subscription';
+  setActiveTab: (tab: 'search' | 'saved' | 'subscription') => void;
   savedCount: number;
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
@@ -30,6 +30,12 @@ export default function Sidebar({
       label: 'Saved Leads',
       icon: Bookmark,
       badge: savedCount > 0 ? savedCount : null
+    },
+    {
+      id: 'subscription' as const,
+      label: 'My Subscription',
+      icon: CreditCard,
+      badge: null
     }
   ];
 

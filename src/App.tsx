@@ -21,7 +21,7 @@ import {
   Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Business, SavedBusiness, SearchHistory, ActiveUser, UserSubscription, SubscriptionTier } from './types';
+import { Business, SavedBusiness, SearchHistory, ActiveUser, UserSubscription, SubscriptionTier, SubscriptionHistoryEntry } from './types';
 import Header from './components/Header';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfService from './components/TermsOfService';
@@ -65,7 +65,8 @@ export default function App() {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   // Navigation state
-  const [activeTab, setActiveTab] = useState<'search' | 'saved'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'saved' | 'subscription'>('search');
+  const [subscriptionHistory, setSubscriptionHistory] = useState<SubscriptionHistoryEntry[]>([]);
   const [activeFooterModal, setActiveFooterModal] = useState<'privacy' | 'terms' | 'about' | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname);
@@ -396,6 +397,9 @@ export default function App() {
   // Load initial systemic state & monitor Cloud Auth changes reactively
   useEffect(() => {
     let active = true;
+    let subUnsubscribe: (() => void) | null = null;
+    let historyUnsubscribe: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       let activeUser: ActiveUser;
       if (firebaseUser) {
@@ -410,13 +414,33 @@ export default function App() {
 
       const saved = await databaseService.getSavedBusinesses();
       const history = await databaseService.getSearchHistory();
-      const sub = await databaseService.getSubscription();
+      
+      if (subUnsubscribe) {
+        subUnsubscribe();
+        subUnsubscribe = null;
+      }
+
+      subUnsubscribe = databaseService.subscribeToSubscription((updatedSub) => {
+        if (active) {
+          setSubscription(updatedSub);
+        }
+      });
+
+      if (historyUnsubscribe) {
+        historyUnsubscribe();
+        historyUnsubscribe = null;
+      }
+
+      historyUnsubscribe = databaseService.subscribeToSubscriptionHistory((updatedHistory) => {
+        if (active) {
+          setSubscriptionHistory(updatedHistory);
+        }
+      });
       
       if (active) {
         setUser(activeUser);
         setSavedLeads(saved);
         setSearchHistory(history);
-        setSubscription(sub);
         setFirebaseConnected(!!firebaseUser);
       }
     });
@@ -424,6 +448,12 @@ export default function App() {
     return () => {
       active = false;
       unsubscribe();
+      if (subUnsubscribe) {
+        subUnsubscribe();
+      }
+      if (historyUnsubscribe) {
+        historyUnsubscribe();
+      }
     };
   }, []);
 
@@ -1366,6 +1396,196 @@ export default function App() {
                 )}
                   </>
                 )}
+              </motion.div>
+            )}
+
+            {activeTab === 'subscription' && (
+              <motion.div
+                key="subscription-tab"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                {/* My Subscription Dashboard Content */}
+                <div className="bg-white border rounded-2xl p-6 dark:bg-slate-950 dark:border-slate-850 shadow-xs relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/10 dark:bg-purple-400/10 rounded-full blur-3xl pointer-events-none" />
+                  
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 pb-6 border-b border-slate-100 dark:border-slate-900">
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">
+                        Current Membership Plan
+                      </span>
+                      <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>{subscription.tier} Plan</span>
+                        <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900 text-[10px] font-black rounded-full uppercase tracking-wider">
+                          Active
+                        </span>
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                        {subscription.tier === 'Free' && 'Basic level for individual consultants testing local leads.'}
+                        {subscription.tier === 'Starter' && 'Specialized local growth plan with advanced auditing features.'}
+                        {subscription.tier === 'Agency' && 'Uncensored high-powered plan designed for active marketing agencies.'}
+                      </p>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = document.getElementById('pricing-section');
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer select-none"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 fill-current" />
+                      <span>{subscription.tier === 'Agency' ? 'View Plan Features' : '🚀 Upgrade Your Plan'}</span>
+                    </button>
+                  </div>
+
+                  {/* Quota details */}
+                  <div className="pt-6 grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-900/80 space-y-2">
+                      <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                        Search Discoverer Quota
+                      </span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-slate-900 dark:text-white">
+                          {subscription.searchesToday}
+                        </span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">
+                          / {subscription.tier === 'Free' ? '5' : (subscription.tier === 'Starter' ? '20' : 'Unlimited')}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-400 block">
+                        Searches used today. Resets daily.
+                      </span>
+                      {subscription.tier !== 'Agency' && (
+                        <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+                          <div 
+                            className="bg-indigo-600 h-full rounded-full transition-all duration-300" 
+                            style={{ width: `${Math.min(100, (subscription.searchesToday / (subscription.tier === 'Free' ? 5 : 20)) * 100)}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-900/80 space-y-2">
+                      <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                        SEO Audit Reports
+                      </span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-slate-900 dark:text-white">
+                          {subscription.tier === 'Free' ? '0' : 'Unlimited'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-400 block">
+                        {subscription.tier === 'Free' ? 'Requires Starter or Agency plan' : 'Full interactive reports unlocked'}
+                      </span>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-900/80 space-y-2">
+                      <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                        AI Copy Kit Toolkits
+                      </span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-slate-900 dark:text-white">
+                          {subscription.tier === 'Free' ? 'None' : (subscription.tier === 'Starter' ? 'Standard' : 'Unlimited')}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-400 block">
+                        {subscription.tier === 'Free' ? 'No templates available' : (subscription.tier === 'Starter' ? 'Standard templates' : 'Custom high-ticket pitches')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subscription History Card */}
+                <div className="bg-white border rounded-2xl p-6 dark:bg-slate-950 dark:border-slate-850 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-900 pb-4">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white">Subscription & Billing History</h3>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold">
+                        A real-time ledger tracking active subscriptions, mock transactions, and plan changes.
+                      </p>
+                    </div>
+                    {/* Status count badge */}
+                    <span className="px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-[10px] font-bold uppercase rounded-lg text-slate-500 tracking-wider">
+                      {subscriptionHistory.length} Record{subscriptionHistory.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {subscriptionHistory.length === 0 ? (
+                    <div className="text-center py-12 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800/80 space-y-3">
+                      <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400 mx-auto">
+                        <History className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">No Transaction History</h4>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold max-w-xs mx-auto">
+                          You haven't purchased or modified any subscription plans yet. Upgrades made via Razorpay will appear here!
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById('pricing-section');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer"
+                      >
+                        Explore plans now
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-900">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-50/70 dark:bg-slate-900/60 text-slate-400 dark:text-slate-500 font-bold border-b border-slate-100 dark:border-slate-900 uppercase text-[9px] tracking-widest">
+                            <th className="p-3.5 pl-4 font-bold">Transaction ID</th>
+                            <th className="p-3.5 font-bold">Tier Plan</th>
+                            <th className="p-3.5 font-bold">Billing Date</th>
+                            <th className="p-3.5 font-bold">Amount Paid</th>
+                            <th className="p-3.5 pr-4 font-bold text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300 font-semibold">
+                          {subscriptionHistory.map((entry) => (
+                            <tr key={entry.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-900/20 transition-colors">
+                              <td className="p-3.5 pl-4 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                                {entry.id}
+                              </td>
+                              <td className="p-3.5">
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                  entry.tier === 'Free' 
+                                    ? 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-400'
+                                    : entry.tier === 'Starter'
+                                    ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300'
+                                    : 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300'
+                                }`}>
+                                  {entry.tier}
+                                </span>
+                              </td>
+                              <td className="p-3.5 text-slate-500 dark:text-slate-400 font-medium">
+                                {entry.date}
+                              </td>
+                              <td className="p-3.5 font-bold text-slate-900 dark:text-white">
+                                {entry.amount === 0 ? 'Free' : `₹${entry.amount.toLocaleString()}`}
+                              </td>
+                              <td className="p-3.5 pr-4 text-right">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase text-emerald-600 dark:text-emerald-400">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                  <span>{entry.status}</span>
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
 
