@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Check, 
   Zap, 
@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import { SubscriptionTier, UserSubscription } from '../types';
 import { databaseService } from '../services/db';
+import { auth } from '../services/firebase';
+import { PRICING_CONFIG, detectDefaultCurrency } from '../pricingConfig';
+import { razorpayService } from '../services/razorpay';
 
 interface PricingSectionProps {
   subscription: UserSubscription;
@@ -27,76 +30,28 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [payerName, setPayerName] = useState('Jane Doe');
   const [payerEmail, setPayerEmail] = useState('user@example.com');
+  const [selectedCurrency, setSelectedCurrency] = useState<'INR' | 'USD'>(() => detectDefaultCurrency());
 
-  const plans = [
-    {
-      tier: 'Free' as SubscriptionTier,
-      price: '$0',
-      period: 'forever',
-      description: 'Foundational access for freelancers testing the waters.',
-      features: [
-        '5 searches per day',
-        'Only 10 leads shown per search',
-        'Basic business info (Address, Phone)',
-        'Opportunity Score calculator',
-        'Basic local search simulation'
-      ],
-      notIncluded: [
-        'Advanced website audits',
-        'Growth sales proposal generator',
-        'Personalized Outreach templates',
-        'Direct leads export to CSV'
-      ],
-      icon: User,
-      color: 'slate',
-      btnText: 'Current Plan',
-      accent: 'border-slate-200 dark:border-slate-800'
-    },
-    {
-      tier: 'Starter' as SubscriptionTier,
-      price: '$9',
-      period: 'month',
-      description: 'Ideal for specialized local consultants launching their pipeline.',
-      features: [
-        '20 searches per day',
-        'Up to 20 leads shown per search',
-        'Advanced Website SEO Auditing',
-        'Custom Opportunity ranks',
-        'Full review & reputation stats',
-        'Interactive service packages builder',
-        'Save unlimited qualified leads'
-      ],
-      notIncluded: [
-        'Cold email and pitch templates',
-        'Google Places native routing',
-        'Custom reports download'
-      ],
-      icon: TrendingUp,
-      color: 'indigo',
-      btnText: 'Upgrade to Starter',
-      accent: 'border-indigo-500 ring-2 ring-indigo-500/10 dark:ring-indigo-400/10'
-    },
-    {
-      tier: 'Agency' as SubscriptionTier,
-      price: '$49',
-      period: 'month',
-      description: 'Uncensored access for fully scaled digital marketing agencies.',
-      features: [
-        'Unlimited reports & searches',
-        'Unlimited custom proposal builds',
-        'Unlimited tailored outreach copy',
-        'Unlimited lead exports to CSV',
-        'Enterprise Google Places lookup',
-        'Full custom email & WhatsApp kits',
-        'Priority customer support'
-      ],
-      notIncluded: [],
-      icon: Building2,
-      color: 'purple',
-      btnText: 'Upgrade to Agency',
-      accent: 'border-purple-500 ring-2 ring-purple-500/10 dark:ring-purple-400/10'
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user) {
+      setPayerEmail(user.email || 'user@example.com');
+      setPayerName(user.displayName || 'Client User');
     }
-  ];
+  }, []);
+
+  const plans = PRICING_CONFIG.plans.map(p => {
+    const iconMap = {
+      User: User,
+      TrendingUp: TrendingUp,
+      Building2: Building2
+    };
+    return {
+      ...p,
+      icon: iconMap[p.iconName as 'User' | 'TrendingUp' | 'Building2'] || User,
+      price: selectedCurrency === 'INR' ? p.prices.INR.formatted : p.prices.USD.formatted
+    };
+  });
 
   const handleOpenCheckout = (tier: SubscriptionTier) => {
     if (tier === subscription.tier) return;
@@ -124,26 +79,19 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
     setPaymentError(null);
 
     try {
-      // Starter: $9.00 -> ₹750 (75000 paise)
-      // Agency: $49.00 -> ₹4100 (410000 paise)
-      const amountInPaise = checkoutTier === 'Starter' ? 75000 : 410000;
-      const currency = 'INR';
+      const planConfig = PRICING_CONFIG.plans.find(p => p.tier === checkoutTier);
+      if (!planConfig) {
+        throw new Error('Invalid tier configuration selected.');
+      }
 
-      // 1. Create order on server-side
+      const currency = selectedCurrency;
+      const amount = currency === 'INR' 
+        ? planConfig.prices.INR.amount * 100 
+        : planConfig.prices.USD.amount * 100;
+
+      // 1. Create order using service file
       const receiptId = `receipt_${checkoutTier.toLowerCase()}_${Date.now()}`;
-      const orderResponse = await fetch(`/api/create-order?amount=${amountInPaise}&currency=${currency}&receipt=${encodeURIComponent(receiptId)}`, {
-        method: 'GET',
-      });
-
-      if (!orderResponse.ok) {
-        const errData = await orderResponse.json();
-        throw new Error(errData.error || 'Failed to create payment order');
-      }
-
-      const orderData = await orderResponse.json();
-      if (!orderData.success || !orderData.order_id) {
-        throw new Error('Invalid response from payment order creator');
-      }
+      const orderData = await razorpayService.createOrder(amount, currency, receiptId);
 
       const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
 
@@ -159,23 +107,25 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
           try {
             setIsProcessing(true);
             
-            // 3. Verify Payment Signature on server-side
-            const verifyResponse = await fetch('/api/verify-payment', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            });
+            // 3. Verify Payment Signature & update Firestore using service file
+            const verifyData = await razorpayService.verifyPayment(
+              response.razorpay_order_id,
+              response.razorpay_payment_id,
+              response.razorpay_signature,
+              checkoutTier
+            );
 
-            const verifyData = await verifyResponse.json();
-            if (verifyResponse.ok && verifyData.success) {
-              const updated = await databaseService.updateSubscription(checkoutTier);
-              onSubscriptionUpdate(updated);
+            if (verifyData.success) {
+              // Read from verified backend response and sync state
+              if (verifyData.subscription) {
+                // Update local storage and app state
+                localStorage.setItem('localshop_ai_subscription', JSON.stringify(verifyData.subscription));
+                onSubscriptionUpdate(verifyData.subscription);
+              } else {
+                // Fallback to local sync if backend didn't return
+                const updated = await databaseService.updateSubscription(checkoutTier);
+                onSubscriptionUpdate(updated);
+              }
               setPaymentSuccess(true);
               setTimeout(() => {
                 setPaymentSuccess(false);
@@ -224,7 +174,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
 
   return (
     <div id="pricing-section" className="w-full max-w-7xl mx-auto py-14 px-6 border-t border-slate-100 dark:border-slate-850 mt-16 font-sans">
-      <div className="text-center mb-12 max-w-2xl mx-auto space-y-3">
+      <div className="text-center mb-6 max-w-2xl mx-auto space-y-3">
         <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 tracking-wider inline-block border border-indigo-150/20 dark:border-indigo-900/10">
           Flexible Pricing Models
         </span>
@@ -232,8 +182,24 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
           Accelerate Your Sales Pipeline
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          Choose the membership level built to match your client acquisition goals. Pay zero onboarding fee, scale or cancel any time with instant Stripe billing.
+          Choose the membership level built to match your client acquisition goals. Pay zero onboarding fee, scale or cancel any time with instant Razorpay billing.
         </p>
+      </div>
+
+      {/* Currency Selector Toggle Switch */}
+      <div className="flex justify-center items-center gap-3 mb-10">
+        <span className={`text-xs font-bold tracking-wider uppercase transition-colors ${selectedCurrency === 'USD' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}>USD ($)</span>
+        <button
+          type="button"
+          onClick={() => setSelectedCurrency(prev => prev === 'USD' ? 'INR' : 'USD')}
+          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 bg-slate-200 dark:bg-slate-800"
+          aria-label="Toggle currency"
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${selectedCurrency === 'INR' ? 'translate-x-5 bg-indigo-600 dark:bg-indigo-500' : 'translate-x-0'}`}
+          />
+        </button>
+        <span className={`text-xs font-bold tracking-wider uppercase transition-colors ${selectedCurrency === 'INR' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}>INR (₹)</span>
       </div>
 
       {/* Plans Card Grid */}
@@ -247,17 +213,6 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
               key={p.tier}
               className={`p-6 sm:p-8 rounded-2xl border bg-white dark:bg-slate-950/40 relative flex flex-col justify-between h-full transition-all shadow-xs ${p.accent} ${isCurrent ? 'ring-4 ring-indigo-500/15 dark:ring-indigo-400/15' : ''}`}
             >
-              {(p.tier === 'Starter' || p.tier === 'Agency') && (
-                <div className="absolute inset-0 bg-white/80 dark:bg-slate-950/90 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-20 p-6 text-center select-none">
-                  <div className="bg-indigo-600 text-white dark:bg-indigo-500 px-4 py-2 rounded-xl shadow-lg border border-indigo-500/30 transform -rotate-3 hover:rotate-0 transition-all duration-250">
-                    <span className="text-sm font-black tracking-wider uppercase">Beta (Coming Soon)</span>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-3.5 max-w-[220px] leading-relaxed">
-                    Billing integration is currently undergoing maintenance.
-                  </p>
-                </div>
-              )}
-
               {isCurrent && (
                 <span className="absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white shadow-sm flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />

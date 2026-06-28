@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Lock, 
@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import { SubscriptionTier, UserSubscription } from '../types';
 import { databaseService } from '../services/db';
+import { auth } from '../services/firebase';
+import { PRICING_CONFIG, detectDefaultCurrency } from '../pricingConfig';
+import { razorpayService } from '../services/razorpay';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -27,6 +30,17 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [payerName, setPayerName] = useState('Jane Doe');
   const [payerEmail, setPayerEmail] = useState('user@example.com');
+  const [selectedCurrency, setSelectedCurrency] = useState<'INR' | 'USD'>(() => detectDefaultCurrency());
+
+  useEffect(() => {
+    if (isOpen) {
+      const user = auth.currentUser;
+      if (user) {
+        setPayerEmail(user.email || 'user@example.com');
+        setPayerName(user.displayName || 'Client User');
+      }
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -36,26 +50,19 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
     setPaymentError(null);
 
     try {
-      // Starter: $9.00 -> ₹750 (75000 paise)
-      // Agency: $49.00 -> ₹4100 (410000 paise)
-      const amountInPaise = selectedTier === 'Starter' ? 75000 : 410000;
-      const currency = 'INR';
+      const planConfig = PRICING_CONFIG.plans.find(p => p.tier === selectedTier);
+      if (!planConfig) {
+        throw new Error('Invalid tier configuration selected.');
+      }
 
-      // 1. Create order on server-side
+      const currency = selectedCurrency;
+      const amount = currency === 'INR' 
+        ? planConfig.prices.INR.amount * 100 
+        : planConfig.prices.USD.amount * 100;
+
+      // 1. Create order using service file
       const receiptId = `receipt_${selectedTier.toLowerCase()}_${Date.now()}`;
-      const orderResponse = await fetch(`/api/create-order?amount=${amountInPaise}&currency=${currency}&receipt=${encodeURIComponent(receiptId)}`, {
-        method: 'GET',
-      });
-
-      if (!orderResponse.ok) {
-        const errData = await orderResponse.json();
-        throw new Error(errData.error || 'Failed to create payment order');
-      }
-
-      const orderData = await orderResponse.json();
-      if (!orderData.success || !orderData.order_id) {
-        throw new Error('Invalid response from payment order creator');
-      }
+      const orderData = await razorpayService.createOrder(amount, currency, receiptId);
 
       const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T6BQv8610PFQxC';
 
@@ -71,23 +78,22 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
           try {
             setIsProcessing(true);
             
-            // 3. Verify Payment Signature on server-side
-            const verifyResponse = await fetch('/api/verify-payment', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            });
+            // 3. Verify Payment Signature & update Firestore using service file
+            const verifyData = await razorpayService.verifyPayment(
+              response.razorpay_order_id,
+              response.razorpay_payment_id,
+              response.razorpay_signature,
+              selectedTier
+            );
 
-            const verifyData = await verifyResponse.json();
-            if (verifyResponse.ok && verifyData.success) {
-              const updated = await databaseService.updateSubscription(selectedTier);
-              onSubscriptionUpdate(updated);
+            if (verifyData.success) {
+              if (verifyData.subscription) {
+                localStorage.setItem('localshop_ai_subscription', JSON.stringify(verifyData.subscription));
+                onSubscriptionUpdate(verifyData.subscription);
+              } else {
+                const updated = await databaseService.updateSubscription(selectedTier);
+                onSubscriptionUpdate(updated);
+              }
               setPaymentSuccess(true);
               setTimeout(() => {
                 setPaymentSuccess(false);
@@ -144,7 +150,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
     }
     return {
       reached: 'You have reached the Starter Plan daily limit of 20 searches.',
-      starterBenefit: 'You are currently on the Starter Plan ($9/mo).',
+      starterBenefit: `You are currently on the Starter Plan (${selectedCurrency === 'INR' ? '₹750' : '$9'}/mo).`,
       agencyBenefit: 'Agency unlocks Unlimited searches, custom proposals, and full outreach toolkits.'
     };
   };
@@ -206,16 +212,6 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
             </button>
           </div>
 
-          {/* Translucent Cover overlay for maintenance */}
-          <div className="absolute inset-x-0 bottom-0 top-[60px] bg-white/80 dark:bg-slate-950/90 backdrop-blur-[2px] flex flex-col items-center justify-center z-20 p-6 text-center select-none">
-            <div className="bg-indigo-600 text-white dark:bg-indigo-500 px-4 py-2 rounded-xl shadow-lg border border-indigo-500/30 transform -rotate-3 hover:rotate-0 transition-all duration-250">
-              <span className="text-sm font-black tracking-wider uppercase">Beta (Coming Soon)</span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-3.5 max-w-[220px] leading-relaxed">
-              Billing integration is currently undergoing maintenance.
-            </p>
-          </div>
-
           {paymentSuccess ? (
             <div className="py-12 flex flex-col items-center justify-center text-center space-y-3.5 animate-in fade-in duration-300">
               <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center border border-emerald-100 dark:border-emerald-900 animate-bounce">
@@ -231,6 +227,27 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
           ) : (
             <form onSubmit={handleRazorpayPayment} className="space-y-4 pt-4">
               
+              {/* Currency selector inside form */}
+              <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-900">
+                <span className="text-[9px] font-black uppercase text-slate-450 dark:text-slate-500 tracking-wider">Currency Selection</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCurrency('USD')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all cursor-pointer ${selectedCurrency === 'USD' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-900 text-slate-450 hover:text-slate-700 dark:hover:text-slate-350'}`}
+                  >
+                    USD ($)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCurrency('INR')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all cursor-pointer ${selectedCurrency === 'INR' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-900 text-slate-450 hover:text-slate-700 dark:hover:text-slate-350'}`}
+                  >
+                    INR (₹)
+                  </button>
+                </div>
+              </div>
+
               {/* Plan Choice Select Button Toggles */}
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase text-slate-450 dark:text-slate-500 tracking-wider">
@@ -243,7 +260,9 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                     className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${selectedTier === 'Starter' ? 'border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400'}`}
                   >
                     <span className="text-xs font-black">Starter</span>
-                    <span className="text-[11px] font-semibold mt-1 opacity-90">₹750/mo (~$9)</span>
+                    <span className="text-[11px] font-semibold mt-1 opacity-90">
+                      {selectedCurrency === 'INR' ? '₹750/mo' : '$9/mo'}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -251,7 +270,9 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                     className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${selectedTier === 'Agency' ? 'border-purple-500 bg-purple-50/10 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 font-bold' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400'}`}
                   >
                     <span className="text-xs font-black">Agency</span>
-                    <span className="text-[11px] font-semibold mt-1 opacity-90">₹4,100/mo (~$49)</span>
+                    <span className="text-[11px] font-semibold mt-1 opacity-90">
+                      {selectedCurrency === 'INR' ? '₹4,100/mo' : '$49/mo'}
+                    </span>
                   </button>
                 </div>
               </div>
