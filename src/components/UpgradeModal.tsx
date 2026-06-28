@@ -8,7 +8,8 @@ import {
   CreditCard,
   ShieldCheck,
   Check,
-  Info
+  Info,
+  Clock
 } from 'lucide-react';
 import { SubscriptionTier, UserSubscription } from '../types';
 import { databaseService } from '../services/db';
@@ -326,7 +327,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
         {/* Right Side: Simple Payments Forms */}
         <div className="p-6 md:p-8 flex-1 flex flex-col justify-between overflow-y-auto max-h-[500px] md:max-h-full relative">
           {/* Header Close check */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-900">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-900 relative z-30">
             <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Checkout</h4>
             <button
               onClick={onClose}
@@ -335,6 +336,21 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
               <X className="w-4 h-4" />
             </button>
           </div>
+
+          {!paymentSuccess && (
+            <div className="absolute inset-0 bg-white/70 dark:bg-slate-950/75 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-6 text-center select-none">
+              <div className="p-4 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-900/40 mb-4 shadow-xs">
+                <Clock className="w-6 h-6 animate-pulse" />
+              </div>
+              <h4 className="text-base font-black text-slate-900 dark:text-slate-50">Premium Tiers Coming Soon</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold max-w-xs mt-2 leading-relaxed">
+                Our Starter and Agency pipelines are currently in private preview. Full public checkout will be unlocked shortly!
+              </p>
+              <div className="mt-5 px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md">
+                Beta Mode Coming Soon
+              </div>
+            </div>
+          )}
 
           {paymentSuccess ? (
             <div className="py-12 flex flex-col items-center justify-center text-center space-y-3.5 animate-in fade-in duration-300">
