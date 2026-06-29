@@ -29,8 +29,8 @@ try {
 let razorpayInstance: any = null;
 function getRazorpay() {
   if (!razorpayInstance) {
-    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_T74Jw89MqYoIuz';
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'H1PCpj7Z4sgl1Kc2o42byWCQ';
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_T7LdYbLjLmpXEx';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'APr7UOAE9i14LEp2Knr77GSr';
     
     if (!keyId || !keySecret) {
       throw new Error('Razorpay credentials are not fully configured in environment variables');
@@ -626,7 +626,7 @@ You must return a cohesive JSON object conforming strictly to this format:
           isSimulated: false
         });
       } catch (razorpayError: any) {
-        console.warn('Real Razorpay API creation failed, falling back to secure simulated order response:', razorpayError.message);
+        console.warn('Real Razorpay API creation failed, falling back to secure simulated order response:', razorpayError?.message || JSON.stringify(razorpayError) || razorpayError);
         const simulatedOrderId = `sim_order_${Math.random().toString(36).substring(2, 11)}`;
         res.json({
           success: true,
@@ -697,7 +697,7 @@ You must return a cohesive JSON object conforming strictly to this format:
           isSimulated: false
         });
       } catch (razorpayError: any) {
-        console.warn('Real Razorpay API creation (POST) failed, falling back to secure simulated order response:', razorpayError.message);
+        console.warn('Real Razorpay API creation (POST) failed, falling back to secure simulated order response:', razorpayError?.message || JSON.stringify(razorpayError) || razorpayError);
         const simulatedOrderId = `sim_order_${Math.random().toString(36).substring(2, 11)}`;
         res.json({
           success: true,
@@ -739,7 +739,7 @@ You must return a cohesive JSON object conforming strictly to this format:
 
       if (!isBypass) {
         // Verify signature
-        const keySecret = process.env.RAZORPAY_KEY_SECRET || 'H1PCpj7Z4sgl1Kc2o42byWCQ';
+        const keySecret = process.env.RAZORPAY_KEY_SECRET || 'APr7UOAE9i14LEp2Knr77GSr';
         const hmac = crypto.createHmac('sha256', keySecret);
         hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
         const generatedSignature = hmac.digest('hex');
@@ -809,7 +809,7 @@ You must return a cohesive JSON object conforming strictly to this format:
   });
 
   // Razorpay Webhook Endpoint
-  app.post('/api/razorpay-webhook', async (req: any, res) => {
+  app.post(['/api/razorpay-webhook', '/api/razorpay/webhook'], async (req: any, res) => {
     try {
       const signature = req.headers['x-razorpay-signature'];
       if (!signature) {

@@ -30,12 +30,20 @@ service cloud.firestore {
 
     // Entity-specific helpers
     function isValidUser(data, uId) {
-      return data.keys().hasAll(['id', 'email', 'createdAt']) 
-        && data.keys().size() == 3 
-        && data.id == uId 
-        && data.email is string 
-        && data.email.size() <= 256 
-        && data.createdAt == request.time;
+      return (data.keys().size() >= 1)
+        && (!data.keys().hasAny(['id']) || (data.id == uId))
+        && (!data.keys().hasAny(['email']) || (data.email is string && data.email.size() <= 256))
+        && (!data.keys().hasAny(['createdAt']) || (data.createdAt is string || data.createdAt == request.time))
+        && (!data.keys().hasAny(['subscription']) || (
+             data.subscription is map
+             && data.subscription.tier is string
+             && data.subscription.tier in ['Free', 'Starter', 'Agency']
+             && data.subscription.searchesToday is number
+             && data.subscription.lastSearchDate is string
+           ))
+        && (!data.keys().hasAny(['subscriptionHistory']) || (
+             data.subscriptionHistory is list
+           ));
     }
 
     function isValidSavedBusiness(data) {

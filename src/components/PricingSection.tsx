@@ -149,7 +149,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
         return;
       }
 
-      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T74Jw89MqYoIuz';
+      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T7LdYbLjLmpXEx';
 
       // 2. Open official Razorpay Checkout Modal
       const options = {
@@ -382,27 +382,12 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
         {plans.map((p) => {
           const isCurrent = subscription.tier === p.tier;
           const PlanIcon = p.icon;
-          const isBeta = p.tier === 'Starter' || p.tier === 'Agency';
 
           return (
             <div 
               key={p.tier}
               className={`p-6 sm:p-8 rounded-2xl border bg-white dark:bg-slate-950/40 relative flex flex-col justify-between h-full transition-all shadow-xs overflow-hidden ${p.accent} ${isCurrent ? 'ring-4 ring-indigo-500/15 dark:ring-indigo-400/15' : ''}`}
             >
-              {isBeta && (
-                <div className="absolute inset-0 bg-slate-50/60 dark:bg-slate-950/70 backdrop-blur-[1.5px] z-20 flex flex-col items-center justify-center p-6 text-center select-none">
-                  <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-900/40 mb-3 shadow-xs">
-                    <Clock className="w-5 h-5 animate-pulse" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
-                    Beta Mode
-                  </span>
-                  <p className="text-xs font-extrabold text-slate-800 dark:text-slate-100 mt-1">
-                    Coming Soon
-                  </p>
-                </div>
-              )}
-
               {isCurrent && (
                 <span className="absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white shadow-sm flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />

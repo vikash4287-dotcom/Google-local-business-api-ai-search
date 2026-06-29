@@ -103,7 +103,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
         return;
       }
 
-      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T74Jw89MqYoIuz';
+      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T7LdYbLjLmpXEx';
 
       // 2. Open official Razorpay Checkout Modal
       const options = {
@@ -336,21 +336,6 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
               <X className="w-4 h-4" />
             </button>
           </div>
-
-          {!paymentSuccess && (
-            <div className="absolute inset-0 bg-white/70 dark:bg-slate-950/75 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-6 text-center select-none">
-              <div className="p-4 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-900/40 mb-4 shadow-xs">
-                <Clock className="w-6 h-6 animate-pulse" />
-              </div>
-              <h4 className="text-base font-black text-slate-900 dark:text-slate-50">Premium Tiers Coming Soon</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold max-w-xs mt-2 leading-relaxed">
-                Our Starter and Agency pipelines are currently in private preview. Full public checkout will be unlocked shortly!
-              </p>
-              <div className="mt-5 px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md">
-                Beta Mode Coming Soon
-              </div>
-            </div>
-          )}
 
           {paymentSuccess ? (
             <div className="py-12 flex flex-col items-center justify-center text-center space-y-3.5 animate-in fade-in duration-300">
