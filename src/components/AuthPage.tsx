@@ -142,6 +142,18 @@ export default function AuthPage({ onSuccess, onCancel, initialMode = 'login' }:
                 <p className="text-[10px] italic font-semibold text-indigo-600 dark:text-indigo-400">Once added, refresh this page and try again!</p>
               </div>
             )}
+            {(error.includes('auth/operation-not-allowed') || error.includes('operation-not-allowed')) && (
+              <div className="mt-2 pt-2 border-t border-rose-200/40 dark:border-rose-900/30 text-[11px] font-medium text-rose-700 dark:text-rose-350 space-y-2">
+                <p className="font-extrabold text-rose-950 dark:text-rose-200 text-xs">🔒 Email/Password Sign-In Disabled:</p>
+                <p>The Email/Password provider is currently not enabled in your Firebase project.</p>
+                <p className="font-bold">To resolve this:</p>
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>Go to your Firebase Console under <strong>Authentication &gt; Sign-in method</strong></li>
+                  <li>Click <strong>Add new provider</strong> and select <strong>Email/Password</strong>, then toggle it to <strong>Enabled</strong> and Save.</li>
+                </ol>
+                <p className="font-semibold text-indigo-600 dark:text-indigo-400">Alternative: You can use the "Continue with Google" button below which is enabled by default!</p>
+              </div>
+            )}
           </div>
         )}
 
