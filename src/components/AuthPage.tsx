@@ -175,6 +175,28 @@ export default function AuthPage({ onSuccess, onCancel, initialMode = 'login' }:
                 <p className="font-semibold text-indigo-600 dark:text-indigo-400">Alternative: You can use the "Continue with Google" button below which is enabled by default!</p>
               </div>
             )}
+
+            {(error.includes('auth/popup-closed-by-user') || error.includes('popup-closed-by-user') || error.includes('cancelled-popup-request')) && (
+              <div className="mt-2 pt-2 border-t border-rose-200/40 dark:border-rose-900/30 text-[11px] font-medium text-rose-700 dark:text-rose-350 space-y-2">
+                <p className="font-extrabold text-rose-950 dark:text-rose-200 text-xs">🌐 Iframe Preview Restriction Detected:</p>
+                <p>Google Sign-In popup was closed or blocked. Because the app is running in an <strong>iframe preview</strong>, modern browsers restrict cross-origin authentication cookies, causing popup sign-ins to fail.</p>
+                <p className="font-bold">To resolve this easily:</p>
+                <div className="space-y-1.5 pl-2 border-l-2 border-indigo-500/40">
+                  <p><strong>Option A:</strong> Open the app in a new dedicated tab where Google Sign-In will work perfectly:</p>
+                  <a 
+                    href={window.location.href} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-bold text-[10px] uppercase tracking-wider transition-all shadow-xs cursor-pointer decoration-none"
+                  >
+                    <span>↗️ Open App in New Tab</span>
+                  </a>
+                </div>
+                <div className="space-y-1 pt-1">
+                  <p><strong>Option B:</strong> Click the button below to use <strong>Local Sandbox Mode</strong> instantly with zero setup!</p>
+                </div>
+              </div>
+            )}
             
             {/* Direct Sandbox bypass button if any error is encountered */}
             <div className="mt-2 pt-2 border-t border-rose-200/40 dark:border-rose-900/30 space-y-1.5">

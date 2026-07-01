@@ -25,6 +25,9 @@ export async function loginWithGoogle() {
     if (error.code === 'auth/popup-blocked') {
       throw new Error("Sign-in popup was blocked. Please enable popups in your browser and try again.");
     }
+    if (error.code === 'auth/popup-closed-by-user' || error.message?.includes('popup-closed-by-user') || error.code === 'auth/cancelled-popup-request') {
+      throw new Error("auth/popup-closed-by-user: Google Sign-In popup was closed or blocked. Because the app is running in an iframe preview, browsers restrict cross-origin authentication cookies. Try opening the app in a new tab or entering Sandbox Mode.");
+    }
     throw error;
   }
 }
