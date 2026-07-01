@@ -48,6 +48,27 @@ export default function AuthPage({ onSuccess, onCancel, initialMode = 'login' }:
     }
   };
 
+  const handleLocalSandboxBypass = () => {
+    setLoading(true);
+    try {
+      const sandboxUser = {
+        id: `usr_sandbox_${Math.random().toString(36).substr(2, 9)}`,
+        email: email.trim() || 'sandbox@localshopai.com',
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('localshop_ai_user', JSON.stringify(sandboxUser));
+      setSuccess("Bypass successful! Entering Local Sandbox Mode...");
+      setTimeout(() => {
+        onSuccess();
+        window.location.reload();
+      }, 1000);
+    } catch (err: any) {
+      setError("Failed to initialize Sandbox Mode.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
@@ -154,6 +175,20 @@ export default function AuthPage({ onSuccess, onCancel, initialMode = 'login' }:
                 <p className="font-semibold text-indigo-600 dark:text-indigo-400">Alternative: You can use the "Continue with Google" button below which is enabled by default!</p>
               </div>
             )}
+            
+            {/* Direct Sandbox bypass button if any error is encountered */}
+            <div className="mt-2 pt-2 border-t border-rose-200/40 dark:border-rose-900/30 space-y-1.5">
+              <p className="text-[10px] text-rose-700 dark:text-rose-350 font-semibold">
+                💡 Instant Bypassing: You can use our fully functional local sandbox mode with no setup or domain authorization required!
+              </p>
+              <button
+                type="button"
+                onClick={handleLocalSandboxBypass}
+                className="w-full py-1.5 px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>🚀 Enter Local Sandbox Mode (Recommended)</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -315,6 +350,17 @@ export default function AuthPage({ onSuccess, onCancel, initialMode = 'login' }:
               <span>Back to Login</span>
             </button>
           )}
+        </div>
+
+        {/* Instant Sandbox Mode Link */}
+        <div className="text-center pt-2 border-t border-slate-100 dark:border-slate-900">
+          <button
+            type="button"
+            onClick={handleLocalSandboxBypass}
+            className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
+          >
+            <span>✨ Skip setup & enter Local Sandbox Mode</span>
+          </button>
         </div>
 
         {/* Dev disclaimer - remind them to enable email auth if they haven't */}

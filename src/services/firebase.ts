@@ -78,6 +78,7 @@ export async function forgotPassword(email: string) {
 export async function logoutUser() {
   try {
     await signOut(auth);
+    localStorage.removeItem('localshop_ai_user');
   } catch (error) {
     console.error("Sign-out error:", error);
     throw error;

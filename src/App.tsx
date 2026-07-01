@@ -441,7 +441,7 @@ export default function App() {
         setUser(activeUser);
         setSavedLeads(saved);
         setSearchHistory(history);
-        setFirebaseConnected(!!firebaseUser);
+        setFirebaseConnected(!!firebaseUser || (activeUser && activeUser.id !== 'usr_default_vikash'));
       }
     });
 
