@@ -246,10 +246,6 @@ export default function BusinessModal({
 
   const handleAnalyzeWebsite = async () => {
     if (!lead) return;
-    if (!firebaseConnected) {
-      if (onOpenAuth) onOpenAuth('login');
-      return;
-    }
     setIsAuditing(true);
     setAuditError(null);
     try {

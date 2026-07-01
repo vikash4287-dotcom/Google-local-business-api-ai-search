@@ -186,7 +186,7 @@ export default function Header({
         <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
 
         {/* User profile option or login option */}
-        {supabaseConfigured && user && user.email ? (
+        {user && user.email ? (
           <div className="relative animate-in fade-in duration-200" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -194,7 +194,7 @@ export default function Header({
             >
               <div className="hidden flex-col items-end text-right md:flex select-none">
                 <span className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 leading-tight">
-                  Authenticated User
+                  Sandbox User
                 </span>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[130px] truncate font-semibold" title={user.email}>
                   {user.email}
@@ -219,7 +219,7 @@ export default function Header({
             {/* Dropdown menu */}
             {dropdownOpen && (
               <div className="absolute right-0 mt-2.5 w-64 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded-2xl shadow-xl p-3 z-55 animate-in fade-in slide-in-from-top-2 duration-100">
-                <div className="pb-3 border-b border-slate-100 dark:border-slate-900 mb-2.5 text-xs text-left select-none">
+                <div className="pb-1 text-xs text-left select-none">
                   <p className="font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-[9px]">Account Identity</p>
                   <p className="font-bold text-slate-800 dark:text-slate-100 mt-1 truncate" title={user.email}>{user.email}</p>
                   <div className="flex items-center gap-1.5 mt-2.5">
@@ -229,46 +229,10 @@ export default function Header({
                     </span>
                   </div>
                 </div>
-
-                {authError && (
-                  <div className="mb-2 text-[10px] bg-rose-50 border border-rose-100 text-rose-800 p-2 rounded-xl dark:bg-rose-950/20 dark:border-rose-900 font-semibold leading-relaxed">
-                    {authError}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  disabled={loading}
-                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl cursor-pointer transition-colors text-left"
-                >
-                  <span className="flex items-center gap-2">
-                    <LogOut className="w-4 h-4" />
-                    <span>Sign Out</span>
-                  </span>
-                  {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                </button>
               </div>
             )}
           </div>
-        ) : (
-          <div className="flex items-center space-x-2 animate-in fade-in duration-200">
-            <button
-              onClick={() => onOpenAuth?.('login')}
-              type="button"
-              className="px-3.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer select-none"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => onOpenAuth?.('signup')}
-              type="button"
-              className="px-3.5 py-1.5 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl transition-all cursor-pointer select-none shadow-sm shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-97"
-            >
-              Sign Up
-            </button>
-          </div>
-        )}
+        ) : null}
       </div>
     </header>
   );
