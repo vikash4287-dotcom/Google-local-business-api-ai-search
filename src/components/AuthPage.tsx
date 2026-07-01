@@ -121,9 +121,27 @@ export default function AuthPage({ onSuccess, onCancel, initialMode = 'login' }:
 
         {/* Feedback alerts */}
         {error && (
-          <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-800 rounded-xl dark:bg-rose-950/20 dark:border-rose-900/40 text-xs font-semibold leading-relaxed flex items-start gap-2 animate-in fade-in duration-200">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
-            <span>{error}</span>
+          <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-800 rounded-xl dark:bg-rose-950/20 dark:border-rose-900/40 text-xs font-semibold leading-relaxed flex flex-col gap-2 animate-in fade-in duration-200">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
+              <span className="break-all">{error}</span>
+            </div>
+            {error.includes('auth/unauthorized-domain') && (
+              <div className="mt-2 pt-2 border-t border-rose-200/40 dark:border-rose-900/30 text-[11px] font-medium text-rose-700 dark:text-rose-350 space-y-2">
+                <p className="font-extrabold text-rose-950 dark:text-rose-200 text-xs">🛠️ Action Required (Firebase Setup):</p>
+                <p>Firebase Authentication requires you to authorize this website's domain to allow sign-in/sign-up.</p>
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>Go to your <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">Firebase Console</a></li>
+                  <li>Open your project and go to <strong>Build &gt; Authentication &gt; Settings &gt; Authorized domains</strong></li>
+                  <li>Click <strong>Add domain</strong> and enter:</li>
+                </ol>
+                <div className="bg-white/60 dark:bg-slate-900/60 p-2 rounded-lg border border-rose-200/30 font-mono text-[10px] break-all select-all flex justify-between items-center text-slate-800 dark:text-slate-100">
+                  <span>{window.location.hostname}</span>
+                  <span className="text-[9px] uppercase font-black text-slate-400">Copy</span>
+                </div>
+                <p className="text-[10px] italic font-semibold text-indigo-600 dark:text-indigo-400">Once added, refresh this page and try again!</p>
+              </div>
+            )}
           </div>
         )}
 
