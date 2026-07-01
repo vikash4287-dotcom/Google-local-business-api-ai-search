@@ -285,7 +285,7 @@ export default function App() {
       const title = `${leadName} - ${leadCategory} in ${leadCity} | LocalShopAI`;
       const description = `Discover growth opportunities for ${leadName} in ${leadCity}. Rating: ${leadRating} (${leadReviews}). ${hasWeb}. Analyze local profiles with LocalShopAI.`;
       const url = `https://localshopai.com/?lead=${encodeURIComponent(leadName)}`;
-      const image = `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80`;
+      const image = `/social-image.svg`;
 
       // Update Page Title dynamically
       document.title = title;
@@ -308,7 +308,7 @@ export default function App() {
       const defaultTitle = 'LocalShopAI — Find Local Business Leads for SEO & Web Agencies';
       const defaultDesc = 'LocalShopAI helps SEO agencies, web designers, freelancers, and marketers find local businesses with poor websites, low reviews, or weak online presence—so they can turn them into clients.';
       const defaultUrl = 'https://localshopai.com/';
-      const defaultImage = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80';
+      const defaultImage = '/social-image.svg';
 
       document.title = defaultTitle;
 
