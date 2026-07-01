@@ -70,7 +70,7 @@ service cloud.firestore {
     function isValidSearchHistory(data) {
       return data.keys().hasAll(['id', 'city', 'category', 'resultsCount', 'timestamp']) 
         && data.keys().size() >= 5 
-        && data.keys().size() <= 6 
+        && data.keys().size() <= 10 
         && data.id is string 
         && data.id.size() <= 128 
         && data.city is string 
@@ -78,7 +78,8 @@ service cloud.firestore {
         && data.category is string 
         && data.category.size() <= 128 
         && data.resultsCount is number 
-        && (data.timestamp is string || data.timestamp == request.time);
+        && (data.timestamp is string || data.timestamp == request.time)
+        && (!data.keys().hasAny(['filters']) || data.filters is map);
     }
 
     // Rules for User document matching auth uid
