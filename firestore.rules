@@ -58,7 +58,7 @@ service cloud.firestore {
         && data.category.size() <= 128 
         && data.city is string 
         && data.city.size() <= 128 
-        && data.savedAt == request.time 
+        && (data.savedAt is string || data.savedAt == request.time) 
         && data.status in ['New', 'Contacted', 'Interested', 'Do Not Contact']
         && (!data.keys().hasAny(['address']) || (data.address is string && data.address.size() <= 1024))
         && (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() <= 64))
@@ -78,7 +78,7 @@ service cloud.firestore {
         && data.category is string 
         && data.category.size() <= 128 
         && data.resultsCount is number 
-        && data.timestamp == request.time;
+        && (data.timestamp is string || data.timestamp == request.time);
     }
 
     // Rules for User document matching auth uid

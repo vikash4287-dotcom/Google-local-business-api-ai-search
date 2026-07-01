@@ -1,5 +1,5 @@
 import { Business } from '../types';
-import { USA_STATES_AND_CITIES } from './usaGeographics';
+import { COUNTRIES_GEOGRAPHICS } from './countriesGeographics';
 
 // Helper lists for realistic generation
 const BUSINESS_TEMPLATES: Record<string, { prefixes: string[]; suffixes: string[] }> = {
@@ -207,11 +207,17 @@ export function generateMockLeads(
   }
 ): Business[] {
   const normCity = city.trim();
-  // robust lookup: first search in our comprehensive database
-  const foundState = USA_STATES_AND_CITIES.find(s => 
-    s.cities.some(c => c.toLowerCase() === normCity.toLowerCase())
-  );
-  let stateCode = foundState ? foundState.code : '';
+  // robust lookup: first search in our comprehensive countries database
+  let stateCode = '';
+  for (const country of COUNTRIES_GEOGRAPHICS) {
+    const foundState = country.states.find(s => 
+      s.cities.some(c => c.toLowerCase() === normCity.toLowerCase())
+    );
+    if (foundState) {
+      stateCode = foundState.code;
+      break;
+    }
+  }
 
   if (!stateCode) {
     const lookupKey = Object.keys(USA_CITIES_STATES).find(

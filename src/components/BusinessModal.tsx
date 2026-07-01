@@ -297,10 +297,6 @@ export default function BusinessModal({
   };
 
   const handleLaunchAIPitch = () => {
-    if (!firebaseConnected) {
-      if (onOpenAuth) onOpenAuth('login');
-      return;
-    }
     setIsAIPitchOpen(true);
   };
   

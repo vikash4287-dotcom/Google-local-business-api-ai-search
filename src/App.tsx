@@ -29,7 +29,7 @@ import ResultsTable from './components/ResultsTable';
 import BusinessModal from './components/BusinessModal';
 import Footer from './components/Footer';
 import { generateMockLeads } from './services/leadsMock';
-import { USA_STATES_AND_CITIES } from './services/usaGeographics';
+import { COUNTRIES_GEOGRAPHICS } from './services/countriesGeographics';
 import { databaseService } from './services/db';
 import { auth } from './services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -97,13 +97,18 @@ export default function App() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   // Geographic columns
-  const [country] = useState('USA');
+  const [country, setCountry] = useState('USA');
   const [selectedState, setSelectedState] = useState('WA');
 
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get active country configuration helper
+  const currentCountryData = useMemo(() => {
+    return COUNTRIES_GEOGRAPHICS.find(c => c.code === country) || COUNTRIES_GEOGRAPHICS[0];
+  }, [country]);
 
   // Dynamically filtered cities based on query, country, and selected state
   const filteredCities = useMemo(() => {
@@ -112,14 +117,14 @@ export default function App() {
 
     let pool: string[] = [];
     if (selectedState === 'All') {
-      // Gather all unique cities in USA
+      // Gather all unique cities in the current country
       const allCities = new Set<string>();
-      USA_STATES_AND_CITIES.forEach(st => {
+      currentCountryData.states.forEach(st => {
         st.cities.forEach(c => allCities.add(c));
       });
       pool = Array.from(allCities);
     } else {
-      const target = USA_STATES_AND_CITIES.find(st => st.code === selectedState);
+      const target = currentCountryData.states.find(st => st.code === selectedState);
       if (target) {
         pool = target.cities;
       }
@@ -128,7 +133,7 @@ export default function App() {
     return pool
       .filter(c => c.toLowerCase().startsWith(query))
       .sort((a, b) => a.localeCompare(b));
-  }, [city, selectedState]);
+  }, [city, selectedState, currentCountryData]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -154,7 +159,7 @@ export default function App() {
     
     // Auto-align the state dropdown if we're in "All" mode
     if (selectedState === 'All') {
-      const matchState = USA_STATES_AND_CITIES.find(st => 
+      const matchState = currentCountryData.states.find(st => 
         st.cities.some(c => c.toLowerCase() === selectedCity.toLowerCase())
       );
       if (matchState) {
@@ -168,13 +173,28 @@ export default function App() {
   const handleSelectStateChange = (stateCode: string) => {
     setSelectedState(stateCode);
     if (stateCode !== 'All') {
-      const target = USA_STATES_AND_CITIES.find(st => st.code === stateCode);
+      const target = currentCountryData.states.find(st => st.code === stateCode);
       if (target && target.cities.length > 0) {
         // Change to the first city of that state and search it
         const firstCity = target.cities[0];
         setCity(firstCity);
         handleSearch(false, firstCity);
       }
+    }
+  };
+
+  const handleCountryChange = (newCountryCode: string) => {
+    setCountry(newCountryCode);
+    const targetCountry = COUNTRIES_GEOGRAPHICS.find(c => c.code === newCountryCode) || COUNTRIES_GEOGRAPHICS[0];
+    
+    // Reset state dropdown to "All"
+    setSelectedState('All');
+    
+    // Default to the first city of that country and trigger search
+    if (targetCountry.states.length > 0 && targetCountry.states[0].cities.length > 0) {
+      const defaultCity = targetCountry.states[0].cities[0];
+      setCity(defaultCity);
+      handleSearch(false, defaultCity);
     }
   };
 
@@ -773,29 +793,38 @@ export default function App() {
                   <div className="flex flex-col gap-3.5 lg:flex-row lg:items-end">
                     
                     {/* Country select */}
-                    <div className="space-y-1 lg:w-24 shrink-0">
+                    <div className="space-y-1 lg:w-44 shrink-0">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block font-sans">Country</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs">🇺🇸</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs">{currentCountryData.flag}</span>
                         <select
-                          disabled
-                          className="w-full pl-7 pr-2 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 dark:text-slate-400 text-slate-500 rounded-xl text-xs font-bold cursor-not-allowed outline-hidden"
+                          value={country}
+                          onChange={(e) => handleCountryChange(e.target.value)}
+                          className="w-full pl-8 pr-2 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-205 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-xs font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
                         >
-                          <option value="USA">USA</option>
+                          {COUNTRIES_GEOGRAPHICS.map((c) => (
+                            <option key={c.code} value={c.code}>
+                              {c.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
 
-                    {/* US State */}
-                    <div className="space-y-1 lg:w-36 shrink-0">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block font-sans">US State</label>
+                    {/* US State or province or region */}
+                    <div className="space-y-1 lg:w-44 shrink-0">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block font-sans">
+                        {country === 'USA' ? 'US State' : country === 'Canada' ? 'Province' : country === 'UK' ? 'Region' : 'State'}
+                      </label>
                       <select
                         value={selectedState}
                         onChange={(e) => handleSelectStateChange(e.target.value)}
                         className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-205 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-xs font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
                       >
-                        <option value="All">All States</option>
-                        {USA_STATES_AND_CITIES.map((st) => (
+                        <option value="All">
+                          {country === 'USA' ? 'All States' : country === 'Canada' ? 'All Provinces' : country === 'UK' ? 'All Regions' : 'All States'}
+                        </option>
+                        {currentCountryData.states.map((st) => (
                           <option key={st.code} value={st.code}>
                             {st.name} ({st.code})
                           </option>
