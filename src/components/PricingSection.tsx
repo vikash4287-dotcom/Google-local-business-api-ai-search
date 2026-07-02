@@ -112,62 +112,25 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
       const receiptId = `receipt_${checkoutTier.toLowerCase()}_${Date.now()}`;
       const orderData = await razorpayService.createOrder(amount, currency, receiptId, checkoutTier);
 
-      const isSim = !!(orderData as any).isSimulated || orderData.order_id.startsWith('sim_') || currency === 'USD';
-      if (isSim) {
-        setIsSimulated(true);
-        console.log('Detected simulated sandbox mode. Bypassing Razorpay Checkout widget.');
-        
-        // Simulating loading duration before completing upgrade
-        setTimeout(async () => {
-          try {
-            const verifyData = await razorpayService.verifyPayment(
-              orderData.order_id,
-              `pay_sim_${Math.random().toString(36).substring(2, 11)}`,
-              'simulated_signature_bypass',
-              checkoutTier
-            );
-
-            if (verifyData.success) {
-              if (verifyData.subscription) {
-                localStorage.setItem('localshop_ai_subscription', JSON.stringify(verifyData.subscription));
-                onSubscriptionUpdate(verifyData.subscription);
-              } else {
-                const updated = await databaseService.updateSubscription(checkoutTier);
-                onSubscriptionUpdate(updated);
-              }
-              setPaymentSuccess(true);
-            } else {
-              throw new Error(verifyData.error || 'Simulated verification failed');
-            }
-          } catch (verifyErr: any) {
-            console.error('Simulated verification error:', verifyErr);
-            setPaymentError(verifyErr.message || 'Simulated payment verification failed.');
-          } finally {
-            setIsProcessing(false);
-          }
-        }, 1500);
-        return;
-      }
-
       const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T7LdYbLjLmpXEx';
 
       // 2. Open official Razorpay Checkout Modal
-      const options = {
+      const options: any = {
         key: keyId,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'LocalShopAI',
         description: `Upgrade to ${checkoutTier} Plan`,
-        order_id: orderData.order_id,
         handler: async function (response: any) {
           try {
             setIsProcessing(true);
             
             // 3. Verify Payment Signature & update Firestore using service file
+            // Use simulated fallback if order was simulated and signature is missing
             const verifyData = await razorpayService.verifyPayment(
-              response.razorpay_order_id,
+              response.razorpay_order_id || orderData.order_id,
               response.razorpay_payment_id,
-              response.razorpay_signature,
+              response.razorpay_signature || 'simulated_signature_bypass',
               checkoutTier
             );
 
@@ -207,6 +170,17 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
           }
         }
       };
+
+      // Only pass order_id to options if it is a real order and not simulated
+      if (orderData.order_id && !orderData.order_id.startsWith('sim_')) {
+        options.order_id = orderData.order_id;
+      } else {
+        console.log('Using direct checkout mode because order ID is simulated.');
+      }
+
+      if (!(window as any).Razorpay) {
+        throw new Error('Razorpay SDK is not loaded. Please check your internet connection.');
+      }
 
       const rzp = new (window as any).Razorpay(options);
 
@@ -368,7 +342,7 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
 
       {/* Plans Card Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start">
-        {plans.filter(p => p.tier === 'Free').map((p) => {
+        {plans.map((p) => {
           const isCurrent = subscription.tier === p.tier;
           const PlanIcon = p.icon;
 
@@ -442,51 +416,6 @@ export default function PricingSection({ subscription, onSubscriptionUpdate }: P
             </div>
           );
         })}
-
-        {/* Coming Soon Beta Announcement Card */}
-        <div className="p-6 sm:p-8 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30 bg-gradient-to-br from-indigo-50/10 via-white to-purple-50/10 dark:from-indigo-950/5 dark:via-slate-950/40 dark:to-purple-950/5 relative flex flex-col justify-between h-full md:col-span-2 shadow-xs overflow-hidden">
-          {/* Decorative background gradients */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 dark:bg-indigo-400/5 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/5 dark:bg-purple-400/5 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-600 text-white shadow-sm flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Early Access Beta</span>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <span>🚀 Paid Plans Coming Soon</span>
-              </h3>
-              <div className="mt-4 space-y-4 text-slate-650 dark:text-slate-350 text-sm font-semibold leading-relaxed">
-                <p>
-                  Our Starter and Agency plans will officially launch on <strong className="text-indigo-600 dark:text-indigo-400">1st August 2026</strong>.
-                </p>
-                <p>
-                  LocalShopAI is currently in Beta and we're inviting early users to explore the platform for free, test the features, and help us improve.
-                </p>
-                <p>
-                  We'd love your feedback, suggestions, and bug reports.
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-900">
-              <span className="text-[10px] font-extrabold text-slate-450 dark:text-slate-500 uppercase tracking-widest block mb-2">
-                Get in Touch
-              </span>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 rounded-xl border border-slate-100 dark:border-slate-900 w-fit">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Email:</span>
-                <a href="mailto:hello@localshopai.com" className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline">
-                  hello@localshopai.com
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {checkoutTier && (

@@ -67,61 +67,25 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
       const receiptId = `receipt_${selectedTier.toLowerCase()}_${Date.now()}`;
       const orderData = await razorpayService.createOrder(amount, currency, receiptId, selectedTier);
 
-      const isSim = !!(orderData as any).isSimulated || orderData.order_id.startsWith('sim_') || currency === 'USD';
-      if (isSim) {
-        setIsSimulated(true);
-        console.log('Detected simulated sandbox mode in UpgradeModal. Bypassing Razorpay Checkout.');
-
-        setTimeout(async () => {
-          try {
-            const verifyData = await razorpayService.verifyPayment(
-              orderData.order_id,
-              `pay_sim_${Math.random().toString(36).substring(2, 11)}`,
-              'simulated_signature_bypass',
-              selectedTier
-            );
-
-            if (verifyData.success) {
-              if (verifyData.subscription) {
-                localStorage.setItem('localshop_ai_subscription', JSON.stringify(verifyData.subscription));
-                onSubscriptionUpdate(verifyData.subscription);
-              } else {
-                const updated = await databaseService.updateSubscription(selectedTier);
-                onSubscriptionUpdate(updated);
-              }
-              setPaymentSuccess(true);
-            } else {
-              throw new Error(verifyData.error || 'Simulated verification failed');
-            }
-          } catch (verifyErr: any) {
-            console.error('Simulated verification error:', verifyErr);
-            setPaymentError(verifyErr.message || 'Simulated payment verification failed.');
-          } finally {
-            setIsProcessing(false);
-          }
-        }, 1500);
-        return;
-      }
-
       const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T7LdYbLjLmpXEx';
 
       // 2. Open official Razorpay Checkout Modal
-      const options = {
+      const options: any = {
         key: keyId,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'LocalShopAI',
         description: `Upgrade to ${selectedTier} Plan`,
-        order_id: orderData.order_id,
         handler: async function (response: any) {
           try {
             setIsProcessing(true);
             
             // 3. Verify Payment Signature & update Firestore using service file
+            // Use simulated fallback if order was simulated and signature is missing
             const verifyData = await razorpayService.verifyPayment(
-              response.razorpay_order_id,
+              response.razorpay_order_id || orderData.order_id,
               response.razorpay_payment_id,
-              response.razorpay_signature,
+              response.razorpay_signature || 'simulated_signature_bypass',
               selectedTier
             );
 
@@ -158,6 +122,17 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
           }
         }
       };
+
+      // Only pass order_id to options if it is a real order and not simulated
+      if (orderData.order_id && !orderData.order_id.startsWith('sim_')) {
+        options.order_id = orderData.order_id;
+      } else {
+        console.log('Using direct checkout mode in UpgradeModal because order ID is simulated.');
+      }
+
+      if (!(window as any).Razorpay) {
+        throw new Error('Razorpay SDK is not loaded. Please check your internet connection.');
+      }
 
       const rzp = new (window as any).Razorpay(options);
 
