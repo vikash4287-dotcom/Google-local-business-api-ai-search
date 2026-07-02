@@ -27,32 +27,25 @@ try {
   console.error('Error initializing Firebase on server:', err);
 }
 
-let razorpayInstance: any = null;
-function isRazorpayConfigured(): boolean {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+function isRazorpayConfigured(customKeyId?: string, customKeySecret?: string): boolean {
+  const keyId = customKeyId || process.env.RAZORPAY_KEY_ID;
+  const keySecret = customKeySecret || process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret || keyId === 'rzp_test_T7LdYbLjLmpXEx' || keySecret === 'APr7UOAE9i14LEp2Knr77GSr') {
     return false;
   }
   return true;
 }
 
-function getRazorpay() {
-  if (!razorpayInstance) {
-    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_T7LdYbLjLmpXEx';
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'APr7UOAE9i14LEp2Knr77GSr';
-    
-    if (!keyId || !keySecret) {
-      throw new Error('Razorpay credentials are not fully configured in environment variables');
-    }
-    // @ts-ignore
-    const RazorpayConstructor = Razorpay.default || Razorpay;
-    razorpayInstance = new RazorpayConstructor({
-      key_id: keyId,
-      key_secret: keySecret,
-    });
-  }
-  return razorpayInstance;
+function getRazorpayInstance(customKeyId?: string, customKeySecret?: string) {
+  const keyId = customKeyId || process.env.RAZORPAY_KEY_ID || 'rzp_test_T7LdYbLjLmpXEx';
+  const keySecret = customKeySecret || process.env.RAZORPAY_KEY_SECRET || 'APr7UOAE9i14LEp2Knr77GSr';
+  
+  // @ts-ignore
+  const RazorpayConstructor = Razorpay.default || Razorpay;
+  return new RazorpayConstructor({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
 }
 
 async function startServer() {
@@ -603,6 +596,8 @@ You must return a cohesive JSON object conforming strictly to this format:
       const receipt = (req.query.receipt as string) || `receipt_${Date.now()}`;
       const userId = (req.query.userId as string) || '';
       const tier = (req.query.tier as string) || '';
+      const customKeyId = (req.query.customKeyId as string) || undefined;
+      const customKeySecret = (req.query.customKeySecret as string) || undefined;
       
       if (!amountParam) {
         return res.status(400).json({ error: 'Amount is required.' });
@@ -615,7 +610,7 @@ You must return a cohesive JSON object conforming strictly to this format:
 
       console.log(`Creating Razorpay order for amount: ${amount} ${currency}, receipt: ${receipt}, userId: ${userId}, tier: ${tier}`);
       
-      if (!isRazorpayConfigured()) {
+      if (!isRazorpayConfigured(customKeyId, customKeySecret)) {
         console.log('Serving secure simulated Razorpay order for sandbox development.');
         const simulatedOrderId = `sim_order_${Math.random().toString(36).substring(2, 11)}`;
         return res.json({
@@ -630,7 +625,7 @@ You must return a cohesive JSON object conforming strictly to this format:
       }
 
       try {
-        const rzp = getRazorpay();
+        const rzp = getRazorpayInstance(customKeyId, customKeySecret);
         const order = await rzp.orders.create({
           amount,
           currency,
@@ -650,7 +645,7 @@ You must return a cohesive JSON object conforming strictly to this format:
           isSimulated: false
         });
       } catch (razorpayError: any) {
-        console.log('Status: Serving sandbox simulated order response');
+        console.log('Status: Serving sandbox simulated order response. Error details:', razorpayError?.message || JSON.stringify(razorpayError) || razorpayError);
         const simulatedOrderId = `sim_order_${Math.random().toString(36).substring(2, 11)}`;
         res.json({
           success: true,
@@ -675,7 +670,7 @@ You must return a cohesive JSON object conforming strictly to this format:
   // Razorpay Create Order Endpoint (POST)
   app.post('/api/create-order', async (req, res) => {
     try {
-      const { amount: amountBody, currency: currencyBody, receipt: receiptBody, userId, tier } = req.body;
+      const { amount: amountBody, currency: currencyBody, receipt: receiptBody, userId, tier, customKeyId, customKeySecret } = req.body;
       const amountParam = amountBody;
       const currency = (currencyBody as string) || 'INR';
       const receipt = (receiptBody as string) || `receipt_${Date.now()}`;
@@ -695,7 +690,7 @@ You must return a cohesive JSON object conforming strictly to this format:
 
       console.log(`Creating Razorpay order (POST) for amount: ${amount} ${currency}, receipt: ${receipt}, userId: ${userId}, tier: ${tier}`);
       
-      if (!isRazorpayConfigured()) {
+      if (!isRazorpayConfigured(customKeyId, customKeySecret)) {
         console.log('Serving secure simulated Razorpay order for sandbox development (POST).');
         const simulatedOrderId = `sim_order_${Math.random().toString(36).substring(2, 11)}`;
         return res.json({
@@ -710,7 +705,7 @@ You must return a cohesive JSON object conforming strictly to this format:
       }
 
       try {
-        const rzp = getRazorpay();
+        const rzp = getRazorpayInstance(customKeyId, customKeySecret);
         const order = await rzp.orders.create({
           amount,
           currency,
@@ -730,7 +725,7 @@ You must return a cohesive JSON object conforming strictly to this format:
           isSimulated: false
         });
       } catch (razorpayError: any) {
-        console.log('Status: Serving sandbox simulated order response (POST)');
+        console.log('Status: Serving sandbox simulated order response (POST). Error details:', razorpayError?.message || JSON.stringify(razorpayError) || razorpayError);
         const simulatedOrderId = `sim_order_${Math.random().toString(36).substring(2, 11)}`;
         res.json({
           success: true,
@@ -755,7 +750,7 @@ You must return a cohesive JSON object conforming strictly to this format:
   // Razorpay Verify Signature Endpoint
   app.post('/api/verify-payment', async (req, res) => {
     try {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, tier } = req.body;
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, tier, customKeyId, customKeySecret } = req.body;
 
       if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
         return res.status(400).json({ error: 'Missing required parameters: razorpay_order_id, razorpay_payment_id, and razorpay_signature are required.' });
@@ -767,7 +762,7 @@ You must return a cohesive JSON object conforming strictly to this format:
 
       if (!isBypass) {
         // Verify signature
-        const keySecret = process.env.RAZORPAY_KEY_SECRET || 'APr7UOAE9i14LEp2Knr77GSr';
+        const keySecret = customKeySecret || process.env.RAZORPAY_KEY_SECRET || 'APr7UOAE9i14LEp2Knr77GSr';
         const hmac = crypto.createHmac('sha256', keySecret);
         hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
         const generatedSignature = hmac.digest('hex');

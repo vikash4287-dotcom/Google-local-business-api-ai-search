@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { 
   X, 
   Lock, 
@@ -67,7 +68,7 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
       const receiptId = `receipt_${selectedTier.toLowerCase()}_${Date.now()}`;
       const orderData = await razorpayService.createOrder(amount, currency, receiptId, selectedTier);
 
-      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T7LdYbLjLmpXEx';
+      const keyId = localStorage.getItem('custom_razorpay_key_id') || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T7LdYbLjLmpXEx';
 
       // 2. Open official Razorpay Checkout Modal
       const options: any = {
@@ -98,12 +99,15 @@ export default function UpgradeModal({ isOpen, onClose, subscription, onSubscrip
                 onSubscriptionUpdate(updated);
               }
               setPaymentSuccess(true);
+              toast.success(`Successfully upgraded to ${selectedTier} Plan!`);
             } else {
               throw new Error(verifyData.error || 'Signature verification failed');
             }
           } catch (verifyErr: any) {
             console.error('Payment signature verification error:', verifyErr);
-            setPaymentError(verifyErr.message || 'Payment signature verification failed.');
+            const errMsg = verifyErr.message || 'Payment signature verification failed.';
+            setPaymentError(errMsg);
+            toast.error(errMsg);
           } finally {
             setIsProcessing(false);
           }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { 
   Search, 
   MapPin, 
@@ -42,6 +43,7 @@ import AgenciesSection from './components/AgenciesSection';
 import Hero from './components/Hero';
 import UpgradeModal from './components/UpgradeModal';
 import AuthPage from './components/AuthPage';
+import RazorpayKeysForm from './components/RazorpayKeysForm';
 import { calculateLeadScore } from './utils/score';
 
 export default function App() {
@@ -1530,6 +1532,9 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Dynamic custom Razorpay credentials configuration */}
+                <RazorpayKeysForm />
+
                 {/* Subscription History Card */}
                 <div className="bg-white border rounded-2xl p-6 dark:bg-slate-950 dark:border-slate-850 shadow-xs space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-900 pb-4">
@@ -1681,6 +1686,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
     </div>
   );
 }

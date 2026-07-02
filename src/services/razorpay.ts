@@ -32,9 +32,23 @@ export const razorpayService = {
   ): Promise<RazorpayOrderResponse> {
     try {
       const userId = auth.currentUser?.uid || 'usr_default_vikash';
-      const url = `/api/create-order?amount=${amount}&currency=${currency}&receipt=${encodeURIComponent(receipt)}&userId=${encodeURIComponent(userId)}&tier=${encodeURIComponent(tier || '')}`;
-      const response = await fetch(url, {
-        method: 'GET',
+      const customKeyId = localStorage.getItem('custom_razorpay_key_id') || undefined;
+      const customKeySecret = localStorage.getItem('custom_razorpay_key_secret') || undefined;
+      
+      const response = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount,
+          currency,
+          receipt,
+          userId,
+          tier,
+          customKeyId,
+          customKeySecret,
+        }),
       });
 
       const data = await response.json();
@@ -64,6 +78,9 @@ export const razorpayService = {
   ): Promise<RazorpayVerificationResponse> {
     try {
       const userId = auth.currentUser?.uid || 'usr_default_vikash';
+      const customKeyId = localStorage.getItem('custom_razorpay_key_id') || undefined;
+      const customKeySecret = localStorage.getItem('custom_razorpay_key_secret') || undefined;
+      
       const response = await fetch('/api/verify-payment', {
         method: 'POST',
         headers: {
@@ -75,6 +92,8 @@ export const razorpayService = {
           razorpay_signature: signature,
           userId,
           tier,
+          customKeyId,
+          customKeySecret,
         }),
       });
 
