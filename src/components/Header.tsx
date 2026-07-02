@@ -186,7 +186,7 @@ export default function Header({
         <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
 
         {/* User profile option or login option */}
-        {user && user.email ? (
+        {supabaseConfigured ? (
           <div className="relative animate-in fade-in duration-200" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -194,7 +194,7 @@ export default function Header({
             >
               <div className="hidden flex-col items-end text-right md:flex select-none">
                 <span className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 leading-tight">
-                  Sandbox User
+                  {user.id.startsWith('usr_sandbox_') ? 'Sandbox User' : 'Verified User'}
                 </span>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[130px] truncate font-semibold" title={user.email}>
                   {user.email}
@@ -225,14 +225,38 @@ export default function Header({
                   <div className="flex items-center gap-1.5 mt-2.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     <span className="text-[10px] uppercase font-black text-emerald-600 dark:text-emerald-400 tracking-wide">
-                      Session Verified
+                      {user.id.startsWith('usr_sandbox_') ? 'Sandbox Active' : 'Session Verified'}
                     </span>
                   </div>
                 </div>
+                <div className="my-2 border-t border-slate-150 dark:border-slate-850" />
+                <button
+                  onClick={handleSignOut}
+                  disabled={loading}
+                  className="w-full text-left flex items-center space-x-2 px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-700 dark:hover:text-rose-400 rounded-lg font-bold transition-all cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 shrink-0" />
+                  <span>{loading ? 'Signing out...' : 'Sign Out Account'}</span>
+                </button>
               </div>
             )}
           </div>
-        ) : null}
+        ) : (
+          <div className="flex items-center space-x-2 animate-in fade-in duration-200">
+            <button
+              onClick={() => onOpenAuth?.('login')}
+              className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850 dark:text-slate-205 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => onOpenAuth?.('signup')}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs shadow-indigo-600/10"
+            >
+              Sign Up
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );
