@@ -26,6 +26,10 @@ import { Business, SavedBusiness, SearchHistory, ActiveUser, UserSubscription, S
 import Header from './components/Header';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfService from './components/TermsOfService';
+import FAQPage from './components/FAQPage';
+import PricingPage from './components/PricingPage';
+import ContactPage from './components/ContactPage';
+import BlogPage from './components/BlogPage';
 import ResultsTable from './components/ResultsTable';
 import BusinessModal from './components/BusinessModal';
 import Footer from './components/Footer';
@@ -325,7 +329,7 @@ export default function App() {
       updateMetaTag('twitter-title', 'name', 'twitter:title', 'content', title);
       updateMetaTag('twitter-description', 'name', 'twitter:description', 'content', description);
       updateMetaTag('twitter-image', 'name', 'twitter:image', 'content', image);
-    } else {
+    } else if (currentPath === '/') {
       // Revert to Homepage Defaults
       const defaultTitle = 'LocalShopAI — Find Local Business Leads for SEO & Web Agencies';
       const defaultDesc = 'LocalShopAI helps SEO agencies, web designers, freelancers, and marketers find local businesses with poor websites, low reviews, or weak online presence—so they can turn them into clients.';
@@ -333,6 +337,11 @@ export default function App() {
       const defaultImage = '/social-image.svg';
 
       document.title = defaultTitle;
+
+      let canonical = document.querySelector('link[rel="canonical"]');
+      if (canonical) {
+        canonical.setAttribute('href', defaultUrl);
+      }
 
       updateMetaTag('og-type', 'property', 'og:type', 'content', 'website');
       updateMetaTag('og-url', 'property', 'og:url', 'content', defaultUrl);
@@ -346,7 +355,7 @@ export default function App() {
       updateMetaTag('twitter-description', 'name', 'twitter:description', 'content', defaultDesc);
       updateMetaTag('twitter-image', 'name', 'twitter:image', 'content', defaultImage);
     }
-  }, [selectedLead]);
+  }, [selectedLead, currentPath]);
 
   // Dynamic robots noindex injection for private/utility paths to optimize search crawling
   useEffect(() => {
@@ -750,6 +759,14 @@ export default function App() {
             <PrivacyPolicy onBackToHome={() => navigateTo('/')} />
           ) : currentPath === '/terms-of-service' ? (
             <TermsOfService onBackToHome={() => navigateTo('/')} />
+          ) : currentPath === '/pricing' ? (
+            <PricingPage subscription={subscription} onSubscriptionUpdate={setSubscription} onBackToHome={() => navigateTo('/')} />
+          ) : currentPath === '/faq' ? (
+            <FAQPage onBackToHome={() => navigateTo('/')} />
+          ) : currentPath === '/contact' ? (
+            <ContactPage onBackToHome={() => navigateTo('/')} />
+          ) : currentPath.startsWith('/blog') ? (
+            <BlogPage onBackToHome={() => navigateTo('/')} />
           ) : (
             <>
               <AnimatePresence mode="wait">

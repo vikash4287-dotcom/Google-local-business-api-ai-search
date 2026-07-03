@@ -53,11 +53,54 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
                 </li>
                 <li>
                   <a
-                    href="mailto:hello@localshopai.com"
+                    href="/blog"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate?.('/blog');
+                    }}
                     className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
                   >
-                    <Mail className="w-3.5 h-3.5" />
-                    <span>Connect with us</span>
+                    <FileText className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Our Blog</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/faq"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate?.('/faq');
+                    }}
+                    className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Help & FAQ</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/pricing"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate?.('/pricing');
+                    }}
+                    className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Pricing Plans</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/contact"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate?.('/contact');
+                    }}
+                    className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Contact Us</span>
                   </a>
                 </li>
               </ul>
@@ -68,34 +111,30 @@ export default function Footer({ activeModal, setActiveModal, googleMapsStatus, 
               <h4 className="text-xs font-black uppercase tracking-widest text-slate-850 dark:text-slate-305">Legal & trust</h4>
               <ul className="space-y-2 text-xs font-semibold">
                 <li>
-                  <button
-                    onClick={() => {
-                      if (onNavigate) {
-                        onNavigate('/privacy-policy');
-                      } else {
-                        setActiveModal('privacy');
-                      }
+                  <a
+                    href="/privacy-policy"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate?.('/privacy-policy');
                     }}
                     className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
                   >
-                    <Shield className="w-3.5 h-3.5" />
+                    <Shield className="w-3.5 h-3.5 text-slate-400" />
                     <span>Privacy Policy</span>
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    onClick={() => {
-                      if (onNavigate) {
-                        onNavigate('/terms-of-service');
-                      } else {
-                        setActiveModal('terms');
-                      }
+                  <a
+                    href="/terms-of-service"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onNavigate?.('/terms-of-service');
                     }}
                     className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
                   >
-                    <FileText className="w-3.5 h-3.5" />
+                    <FileText className="w-3.5 h-3.5 text-slate-400" />
                     <span>Terms of Service</span>
-                  </button>
+                  </a>
                 </li>
               </ul>
             </div>

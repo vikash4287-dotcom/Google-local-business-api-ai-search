@@ -119,9 +119,13 @@ export default function Header({
       {/* Pricing and navigation links */}
       <button
         onClick={() => {
-          const el = document.getElementById('pricing-section');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
+          if (onNavigate) {
+            onNavigate('/pricing');
+          } else {
+            const el = document.getElementById('pricing-section');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            }
           }
         }}
         className="text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-all mx-4 cursor-pointer select-none hidden md:inline-block"

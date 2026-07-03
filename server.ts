@@ -938,6 +938,77 @@ You must return a cohesive JSON object conforming strictly to this format:
     }
   });
 
+  // Dynamic XML Sitemap Generator
+  app.get('/sitemap.xml', (req, res) => {
+    try {
+      const host = req.get('host') || 'localshopai.com';
+      const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+      const domain = `${protocol}://${host}`;
+
+      const routes = [
+        { path: '', changefreq: 'daily', priority: '1.0' },
+        { path: 'pricing', changefreq: 'weekly', priority: '0.8' },
+        { path: 'faq', changefreq: 'weekly', priority: '0.7' },
+        { path: 'contact', changefreq: 'monthly', priority: '0.6' },
+        { path: 'privacy-policy', changefreq: 'monthly', priority: '0.5' },
+        { path: 'terms-of-service', changefreq: 'monthly', priority: '0.5' },
+        { path: 'blog', changefreq: 'weekly', priority: '0.8' },
+        { path: 'blog/no-website-outreach', changefreq: 'weekly', priority: '0.8' },
+        { path: 'blog/local-seo-secrets', changefreq: 'weekly', priority: '0.8' },
+        { path: 'blog/personalization-vs-spam', changefreq: 'weekly', priority: '0.8' }
+      ];
+
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+      
+      routes.forEach(r => {
+        const pathSuffix = r.path ? `/${r.path}` : '';
+        xml += '  <url>\n';
+        xml += `    <loc>${domain}${pathSuffix}</loc>\n`;
+        xml += `    <changefreq>${r.changefreq}</changefreq>\n`;
+        xml += `    <priority>${r.priority}</priority>\n`;
+        xml += '  </url>\n';
+      });
+
+      xml += '</urlset>';
+
+      res.header('Content-Type', 'application/xml');
+      res.send(xml);
+    } catch (err: any) {
+      console.error('Error rendering sitemap:', err);
+      res.status(500).send('Error generating sitemap');
+    }
+  });
+
+  // Dynamic Robots.txt Handler to point search engines to the current host sitemap
+  app.get('/robots.txt', (req, res) => {
+    try {
+      const host = req.get('host') || 'localshopai.com';
+      const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+      const domain = `${protocol}://${host}`;
+
+      const robotsText = `User-agent: *
+Disallow: /app
+Disallow: /dashboard
+Disallow: /saved-leads
+Disallow: /account
+Disallow: /settings
+Disallow: /login
+Disallow: /signup
+Disallow: /api
+Disallow: /admin
+Disallow: /sandbox
+
+Sitemap: ${domain}/sitemap.xml
+`;
+      res.header('Content-Type', 'text/plain');
+      res.send(robotsText);
+    } catch (err: any) {
+      console.error('Error serving robots.txt:', err);
+      res.status(500).send('Error serving robots.txt');
+    }
+  });
+
   // Vite middleware setup for local asset compiling in development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
