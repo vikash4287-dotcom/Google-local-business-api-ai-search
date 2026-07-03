@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { 
   Search, 
@@ -32,7 +32,6 @@ import ContactPage from './components/ContactPage';
 import BlogPage from './components/BlogPage';
 import ResultsTable from './components/ResultsTable';
 import BusinessModal from './components/BusinessModal';
-import Footer from './components/Footer';
 import { generateMockLeads } from './services/leadsMock';
 import { COUNTRIES_GEOGRAPHICS } from './services/countriesGeographics';
 import { databaseService } from './services/db';
@@ -41,14 +40,73 @@ import { onAuthStateChanged } from 'firebase/auth';
 import SearchOverlay from './components/SearchOverlay';
 import PipelineStats from './components/PipelineStats';
 import SearchCategoryChart from './components/SearchCategoryChart';
-import FAQSection from './components/FAQSection';
 import PricingSection from './components/PricingSection';
-import AgenciesSection from './components/AgenciesSection';
 import Hero from './components/Hero';
 import UpgradeModal from './components/UpgradeModal';
 import AuthPage from './components/AuthPage';
 import RazorpayKeysForm from './components/RazorpayKeysForm';
 import { calculateLeadScore } from './utils/score';
+
+// Lazy loading non-critical components to optimize initial page loads for Google SEO
+const Footer = lazy(() => import('./components/Footer'));
+const FAQSection = lazy(() => import('./components/FAQSection'));
+const AgenciesSection = lazy(() => import('./components/AgenciesSection'));
+
+function AgenciesSectionSkeleton() {
+  return (
+    <div className="animate-pulse space-y-8 py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center space-y-3">
+        <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-1/4 mx-auto"></div>
+        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2 mx-auto"></div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="border border-slate-150 dark:border-slate-850 rounded-2xl p-6 space-y-4">
+            <div className="h-10 w-10 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
+            <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-2/3"></div>
+            <div className="space-y-2">
+              <div className="h-3 bg-slate-150 dark:bg-slate-900 rounded w-full"></div>
+              <div className="h-3 bg-slate-150 dark:bg-slate-900 rounded w-5/6"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FAQSectionSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6 py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center space-y-3">
+        <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-1/4 mx-auto"></div>
+        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2 mx-auto"></div>
+      </div>
+      <div className="border border-slate-150 dark:border-slate-850 rounded-2xl p-6 space-y-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="border-b border-slate-100 dark:border-slate-900 pb-4 space-y-2 last:border-0 last:pb-0">
+            <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3"></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FooterSkeleton() {
+  return (
+    <div className="animate-pulse border-t border-slate-200 dark:border-slate-850 py-8 bg-slate-100/50 dark:bg-slate-900/40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="h-4 bg-slate-250 dark:bg-slate-800 rounded w-48"></div>
+        <div className="flex gap-4">
+          <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-16"></div>
+          <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-16"></div>
+          <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-16"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   // Authentication Modal state
@@ -1641,21 +1699,27 @@ export default function App() {
             )}
 
           </AnimatePresence>
-          <AgenciesSection />
+          <Suspense fallback={<AgenciesSectionSkeleton />}>
+            <AgenciesSection />
+          </Suspense>
           <PricingSection subscription={subscription} onSubscriptionUpdate={setSubscription} />
-          <FAQSection />
+          <Suspense fallback={<FAQSectionSkeleton />}>
+            <FAQSection />
+          </Suspense>
             </>
           )}
-          <Footer 
-            activeModal={activeFooterModal}
-            setActiveModal={setActiveFooterModal}
-            googleMapsStatus={{
-              hasKey: googleMapsConfigured,
-              keyPlaceholder: MAPS_KEY
-            }}
-            firebaseConnected={firebaseConnected}
-            onNavigate={navigateTo}
-          />
+          <Suspense fallback={<FooterSkeleton />}>
+            <Footer 
+              activeModal={activeFooterModal}
+              setActiveModal={setActiveFooterModal}
+              googleMapsStatus={{
+                hasKey: googleMapsConfigured,
+                keyPlaceholder: MAPS_KEY
+              }}
+              firebaseConnected={firebaseConnected}
+              onNavigate={navigateTo}
+            />
+          </Suspense>
         </main>
       </div>
 

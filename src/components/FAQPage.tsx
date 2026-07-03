@@ -1,7 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { ArrowLeft, HelpCircle } from 'lucide-react';
-import FAQSection from './FAQSection';
 import Breadcrumbs from './Breadcrumbs';
+
+const FAQSection = lazy(() => import('./FAQSection'));
+
+function FAQSectionSkeleton() {
+  return (
+    <div className="animate-pulse space-y-4 py-4">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="border border-slate-150 dark:border-slate-850 rounded-xl p-4 space-y-2">
+          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3"></div>
+          <div className="h-3 bg-slate-150 dark:bg-slate-900 rounded w-5/6"></div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface FAQPageProps {
   onBackToHome: () => void;
@@ -77,7 +91,9 @@ export default function FAQPage({ onBackToHome, onNavigate }: FAQPageProps) {
 
         {/* Embedded FAQ Section Component */}
         <div className="bg-white border border-slate-150 rounded-2xl dark:bg-slate-950 dark:border-slate-850 shadow-xs p-2 sm:p-6 lg:p-8">
-          <FAQSection />
+          <Suspense fallback={<FAQSectionSkeleton />}>
+            <FAQSection />
+          </Suspense>
         </div>
 
       </div>
