@@ -756,17 +756,17 @@ export default function App() {
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           {currentPath === '/privacy-policy' ? (
-            <PrivacyPolicy onBackToHome={() => navigateTo('/')} />
+            <PrivacyPolicy onBackToHome={() => navigateTo('/')} onNavigate={navigateTo} />
           ) : currentPath === '/terms-of-service' ? (
-            <TermsOfService onBackToHome={() => navigateTo('/')} />
+            <TermsOfService onBackToHome={() => navigateTo('/')} onNavigate={navigateTo} />
           ) : currentPath === '/pricing' ? (
-            <PricingPage subscription={subscription} onSubscriptionUpdate={setSubscription} onBackToHome={() => navigateTo('/')} />
+            <PricingPage subscription={subscription} onSubscriptionUpdate={setSubscription} onBackToHome={() => navigateTo('/')} onNavigate={navigateTo} />
           ) : currentPath === '/faq' ? (
-            <FAQPage onBackToHome={() => navigateTo('/')} />
+            <FAQPage onBackToHome={() => navigateTo('/')} onNavigate={navigateTo} />
           ) : currentPath === '/contact' ? (
-            <ContactPage onBackToHome={() => navigateTo('/')} />
+            <ContactPage onBackToHome={() => navigateTo('/')} onNavigate={navigateTo} />
           ) : currentPath.startsWith('/blog') ? (
-            <BlogPage onBackToHome={() => navigateTo('/')} />
+            <BlogPage onBackToHome={() => navigateTo('/')} onNavigate={navigateTo} />
           ) : (
             <>
               <AnimatePresence mode="wait">

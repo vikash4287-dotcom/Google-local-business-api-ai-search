@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, Calendar, Clock, User, ArrowRight, Share2, Heart, Search } from 'lucide-react';
+import Breadcrumbs from './Breadcrumbs';
 
 interface BlogPageProps {
   onBackToHome: () => void;
+  onNavigate?: (path: string) => void;
 }
 
 interface Article {
@@ -74,7 +76,7 @@ const articles: Article[] = [
   }
 ];
 
-export default function BlogPage({ onBackToHome }: BlogPageProps) {
+export default function BlogPage({ onBackToHome, onNavigate }: BlogPageProps) {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(() => {
     const path = window.location.pathname;
     if (path.startsWith('/blog/')) {
@@ -166,6 +168,9 @@ export default function BlogPage({ onBackToHome }: BlogPageProps) {
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs onNavigate={onNavigate} />
+
         {/* Navigation / Back links */}
         {selectedArticle ? (
           <button

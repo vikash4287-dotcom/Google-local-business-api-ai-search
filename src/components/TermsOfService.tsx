@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, Mail, Globe, BookOpen, ArrowLeft } from 'lucide-react';
+import Breadcrumbs from './Breadcrumbs';
 
 interface TermsOfServiceProps {
   onBackToHome: () => void;
+  onNavigate?: (path: string) => void;
 }
 
-export default function TermsOfService({ onBackToHome }: TermsOfServiceProps) {
+export default function TermsOfService({ onBackToHome, onNavigate }: TermsOfServiceProps) {
   const [activeSection, setActiveSection] = useState<string>('');
 
   // Update SEO Metadata dynamically
@@ -99,6 +101,9 @@ export default function TermsOfService({ onBackToHome }: TermsOfServiceProps) {
       {/* Centered Container wrapper */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs onNavigate={onNavigate} />
+
         {/* Back navigation option */}
         <button
           onClick={onBackToHome}

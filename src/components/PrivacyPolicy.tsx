@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Shield, Mail, Globe, ArrowRight, BookOpen, Menu, X, ArrowLeft } from 'lucide-react';
+import Breadcrumbs from './Breadcrumbs';
 
 interface PrivacyPolicyProps {
   onBackToHome: () => void;
+  onNavigate?: (path: string) => void;
 }
 
-export default function PrivacyPolicy({ onBackToHome }: PrivacyPolicyProps) {
+export default function PrivacyPolicy({ onBackToHome, onNavigate }: PrivacyPolicyProps) {
   const [activeSection, setActiveSection] = useState<string>('');
 
   // Update SEO Metadata dynamically
@@ -97,6 +99,9 @@ export default function PrivacyPolicy({ onBackToHome }: PrivacyPolicyProps) {
       {/* Centered Container wrapper */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs onNavigate={onNavigate} />
+
         {/* Back navigation option */}
         <button
           onClick={onBackToHome}

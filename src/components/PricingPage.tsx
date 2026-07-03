@@ -2,14 +2,16 @@ import React, { useEffect } from 'react';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import PricingSection from './PricingSection';
 import { UserSubscription } from '../types';
+import Breadcrumbs from './Breadcrumbs';
 
 interface PricingPageProps {
   subscription: UserSubscription;
   onSubscriptionUpdate: (updated: UserSubscription) => void;
   onBackToHome: () => void;
+  onNavigate?: (path: string) => void;
 }
 
-export default function PricingPage({ subscription, onSubscriptionUpdate, onBackToHome }: PricingPageProps) {
+export default function PricingPage({ subscription, onSubscriptionUpdate, onBackToHome, onNavigate }: PricingPageProps) {
   // Update SEO Metadata dynamically
   useEffect(() => {
     const prevTitle = document.title;
@@ -49,6 +51,9 @@ export default function PricingPage({ subscription, onSubscriptionUpdate, onBack
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs onNavigate={onNavigate} />
+
         {/* Back navigation */}
         <button
           onClick={onBackToHome}
