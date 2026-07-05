@@ -66,6 +66,7 @@ export default function BusinessModal({
 
   const [customSubject, setCustomSubject] = useState('');
   const [customBody, setCustomBody] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [isManualEdit, setIsManualEdit] = useState(false);
 
   // Sync gaps when lead changes
@@ -77,6 +78,7 @@ export default function BusinessModal({
       poorRating: (lead.rating || 0) < 4.2,
     });
     setIsManualEdit(false);
+    setRecipientEmail('');
   }, [lead?.id]);
 
   const handleSenderNameChange = (val: string) => {
@@ -349,13 +351,11 @@ export default function BusinessModal({
   };
 
   const sendQuickEmail = () => {
-    const subject = getSubjectLine();
-    const body = generatePitchText();
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(customSubject)}&body=${encodeURIComponent(customBody)}`;
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatePitchText());
+    navigator.clipboard.writeText(customBody);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -980,10 +980,15 @@ export default function BusinessModal({
             {/* Simulated Email Client UI */}
             <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
               <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-850 flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50">
-                <span className="text-[10px] font-bold text-slate-400 block w-14 uppercase shrink-0">To:</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">
-                  Owner at {lead.name} &bull; <span className="font-medium text-slate-400 italic">No public email (using contact fallback)</span>
-                </span>
+                <label htmlFor="recipient-email-input" className="text-[10px] font-bold text-slate-400 block w-14 uppercase shrink-0">To:</label>
+                <input
+                  id="recipient-email-input"
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder={`Owner at ${lead.name} (enter email if known)`}
+                  className="w-full bg-transparent border-none p-0 focus:ring-0 focus:outline-hidden text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:bg-transparent"
+                />
               </div>
               
               <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-850 flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50">
@@ -1042,7 +1047,7 @@ export default function BusinessModal({
                   className="w-1/2 sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl cursor-pointer transition-colors shadow-xs"
                 >
                   <Mail className="w-4 h-4" />
-                  <span>Send Quick Email</span>
+                  <span>Open in Email Client</span>
                 </button>
                 
                 <button
