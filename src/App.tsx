@@ -877,10 +877,10 @@ export default function App() {
                         <select
                           value={country}
                           onChange={(e) => handleCountryChange(e.target.value)}
-                          className="w-full pl-8 pr-2 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-205 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-xs font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
+                          className="w-full pl-8 pr-2 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-205 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
                         >
                           {COUNTRIES_GEOGRAPHICS.map((c) => (
-                            <option key={c.code} value={c.code}>
+                            <option key={c.code} value={c.code} className="bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-100">
                               {c.name}
                             </option>
                           ))}
@@ -896,13 +896,13 @@ export default function App() {
                       <select
                         value={selectedState}
                         onChange={(e) => handleSelectStateChange(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-205 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-xs font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
+                        className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-205 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
                       >
-                        <option value="All">
+                        <option value="All" className="bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-100">
                           {country === 'USA' ? 'All States' : country === 'Canada' ? 'All Provinces' : country === 'UK' ? 'All Regions' : 'All States'}
                         </option>
                         {currentCountryData.states.map((st) => (
-                          <option key={st.code} value={st.code}>
+                          <option key={st.code} value={st.code} className="bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-100">
                             {st.name} ({st.code})
                           </option>
                         ))}
@@ -982,10 +982,10 @@ export default function App() {
                       <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-205 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 dark:text-slate-100 rounded-xl text-xs font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
+                        className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-205 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-850/60 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-semibold transition-all focus:border-indigo-500 outline-hidden cursor-pointer"
                       >
                         {CATEGORIES.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
+                          <option key={cat} value={cat} className="bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-100">{cat}</option>
                         ))}
                       </select>
                     </div>
@@ -1106,11 +1106,11 @@ export default function App() {
                           <select
                             value={hasWebsite}
                             onChange={(e) => setHasWebsite(e.target.value as any)}
-                            className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-205 rounded-lg dark:bg-slate-900 dark:border-slate-850 dark:text-slate-100 outline-hidden cursor-pointer"
+                            className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-205 rounded-lg text-slate-800 dark:text-slate-100 dark:bg-slate-900 dark:border-slate-850 outline-hidden cursor-pointer"
                           >
-                            <option value="any">Any Presence</option>
-                            <option value="yes">Has Website</option>
-                            <option value="no">No Website Deficit</option>
+                            <option value="any" className="bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-100">Any Presence</option>
+                            <option value="yes" className="bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-100">Has Website</option>
+                            <option value="no" className="bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-100">No Website Deficit</option>
                           </select>
                         </div>
                       </div>
